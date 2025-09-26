@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 
 # Cmake build examples: for Visual Studio 2017
 #
@@ -45,12 +45,25 @@ include(cmake/helperfunctions.cmake)
 # Common compiler options
 # ------------------------------
 
-if (CMP_HOST_WINDOWS)
+if (CMP_COMPILER_MSVC)
     add_compile_options(/W4 /wd4201)
 #    add_compile_options(/W4 /WX /wd4201)
-elseif(CMP_HOST_LINUX)
-    add_compile_options(-Wall)
-#    add_compile_options(-Wall -Werror)
+elseif(CMP_COMPILER_GCC)
+    # Enable colored output of warnings and errors
+    add_compile_options(-fdiagnostics-color)
+elseif(CMP_COMPILER_CLANG)
+    # Enable colored output of warnings and errors
+    add_compile_options(-fcolor-diagnostics)
+endif()
+
+# Enable all warnings during debug builds
+if (CMP_IS_DEBUG_BUILD)
+    if (CMP_COMPILER_MSVC)
+        add_compile_options(/W4 /wd4201)
+    elseif(CMP_COMPILER_GCC OR CMP_COMPILER_CLANG)
+        add_compile_options(-Wall)
+        #add_compile_options(-Wall -Werror)
+    endif()
 endif()
 
 # ------------------------------------

@@ -14,6 +14,44 @@ else()
     message(FATAL_ERROR "Unknown platform")
 endif()
 
+# Compiler detection
+set(CMP_COMPILER_MSVC OFF)
+set(CMP_COMPILER_GCC OFF)
+set(CMP_COMPILER_CLANG OFF)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL MSVC)
+    set(CMP_COMPILER_MSVC ON)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+    set(CMP_COMPILER_GCC ON)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    set(CMP_COMPILER_CLANG ON)
+endif()
+
+# AVX Feature Flags
+set(CMP_AVX2_FLAG "")
+set(CMP_AVX512_FLAG "")
+
+if (CMP_COMPILER_MSVC)
+    set(CMP_AVX2_FLAG "/arch:AVX2")
+    set(CMP_AVX512_FLAG "/arch:AVX-512")
+elseif(
+    (CMP_COMPILER_GCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0) OR
+    (CMP_COMPILER_CLANG AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0)
+)
+    message(STATUS "Using new, standard x86-64-v* targets for AVX2 and AVX-512 support")
+    set(CMP_AVX2_FLAG "-march=x86-64-v3")
+    set(CMP_AVX512_FLAG "-march=x86-64-v4")
+elseif(CMP_COMPILER_GCC OR CMP_COMPILER_CLANG)
+    message(STATUS "Using \"haswell\" and \"skylake-avx512\" targets for AVX2 and AVX-512 support, respectively")
+    set(CMP_AVX2_FLAG "-march=haswell")
+    set(CMP_AVX512_FLAG "-march=skylake-avx512")
+endif()
+
+# Debug build flag
+set(CMP_IS_DEBUG_BUILD OFF)
+if (CMAKE_BUILD_TYPE STREQUAL Debug)
+    set(CMP_IS_DEBUG_BUILD ON)
+endif()
 
 # Helper function for setting persistent CMake options
 macro(cmp_option OPTION DESCRIPTION DEFAULT REQUIREMENT)

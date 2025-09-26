@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
-
 add_library(CMP_Core STATIC)
 
 target_sources(CMP_Core
@@ -81,12 +79,7 @@ set_target_properties(CMP_Core_SSE PROPERTIES FOLDER ${PROJECT_FOLDER_SDK_LIBS})
 add_library(CMP_Core_AVX STATIC)
 target_sources(CMP_Core_AVX PRIVATE source/core_simd_avx.cpp)
 target_include_directories(CMP_Core_AVX PRIVATE source shaders)
-
-if (WIN32)
-    target_compile_options(CMP_Core_AVX PRIVATE /arch:AVX2)
-else()
-    target_compile_options(CMP_Core_AVX PRIVATE -march=haswell)
-endif()
+target_compile_options(CMP_Core_AVX PRIVATE "${CMP_AVX2_FLAG}")
 
 set_target_properties(CMP_Core_AVX PROPERTIES FOLDER ${PROJECT_FOLDER_SDK_LIBS})
 
@@ -94,12 +87,7 @@ set_target_properties(CMP_Core_AVX PROPERTIES FOLDER ${PROJECT_FOLDER_SDK_LIBS})
 add_library(CMP_Core_AVX512 STATIC)
 target_sources(CMP_Core_AVX512 PRIVATE source/core_simd_avx512.cpp)
 target_include_directories(CMP_Core_AVX512 PRIVATE source shaders)
-
-if (WIN32)
-    target_compile_options(CMP_Core_AVX512 PRIVATE /arch:AVX-512)
-else()
-    target_compile_options(CMP_Core_AVX512 PRIVATE -march=knl)
-endif()
+target_compile_options(CMP_Core_AVX512 PRIVATE "${CMP_AVX512_FLAG}")
 
 set_target_properties(CMP_Core_AVX512 PROPERTIES FOLDER ${PROJECT_FOLDER_SDK_LIBS})
 

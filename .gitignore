@@ -7,7 +7,8 @@
 *.VC.db
 *.VC.VC.opendb
 *.vs
-*.vscode
+**/.vscode/
+**/.idea/
 *CMakeLists.txt.user
 *vcxproj.user
 Applications/_Plugins/C3DModel_viewers/glTF_DX12_EX/GeneratedFiles/*
@@ -27,6 +28,7 @@ build/sdk/bin/*
 build/TEMP/*
 build/Debug*
 build/Release*
+cmake-build*/
 
 */shaders/compiled/*
 internal/tests/output/*
