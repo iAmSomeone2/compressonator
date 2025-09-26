@@ -7,14 +7,10 @@ if (NOT OPTION_CMP_QT)
     return()
 endif()
 
-if (NOT DEFINED ENV{QT_DIR})
-    message(FATAL_ERROR "A 'QT_DIR' environment variable is required to indicate the location where Qt5 is installed.")
-endif()
-
 # We set Qt5_DIR because it is needed for find_package to work, but we want to keep the consistency of the user environment variables
 set(ENV{Qt5_DIR} $ENV{QT_DIR})
 
-find_package(Qt5 COMPONENTS REQUIRED Core PATHS $ENV{QT_DIR})
+find_package(Qt5 COMPONENTS REQUIRED Core HINTS $ENV{QT_DIR})
 
 get_target_property(QtCore_location Qt5::Core LOCATION)
 
@@ -104,24 +100,28 @@ if (OPTION_BUILD_APPS_CMP_GUI)
 endif()
 
 if (CMP_HOST_LINUX AND OPTION_BUILD_APPS_CMP_GUI)
+    # These libs aren't always included with Qt5 packages, so instead we will use find_package.
+    find_package(ICU REQUIRED COMPONENTS data i18n uc)
+    target_link_libraries(ExtQt5ForGUI INTERFACE ICU::data ICU::i18n ICU::uc)
 
-    find_library(LIBICUDATA NAMES libicudata.so.56 PATHS ${QT_LIB_DIR}/lib)
-    if (LIBICUDATA STREQUAL "LIBICUDATA-NOTFOUND")
-        message(FATAL_ERROR "libicudata not found in Qt submodule")
-    endif()
-    find_library(LIBICUUC NAMES libicuuc.so.56 PATHS ${QT_LIB_DIR}/lib)
-    if (LIBICUUC STREQUAL "LIBICUUC-NOTFOUND")
-        message(FATAL_ERROR "libicuuc not found in Qt submodule")
-    endif()
-    find_library(LIBICUI18N NAMES libicui18n.so.56 PATHS ${QT_LIB_DIR}/lib)
-    if (LIBICUI18N STREQUAL "LIBICUI18N-NOTFOUND")
-        message(FATAL_ERROR "libicui18n not found in Qt submodule")
-    endif()
+    
+    # find_library(LIBICUDATA NAMES libicudata.so)
+    # if (LIBICUDATA STREQUAL "LIBICUDATA-NOTFOUND")
+    #     message(FATAL_ERROR "libicudata not found")
+    # endif()
+    # find_library(LIBICUUC NAMES libicuuc.so)
+    # if (LIBICUUC STREQUAL "LIBICUUC-NOTFOUND")
+    #     message(FATAL_ERROR "libicuuc not found")
+    # endif()
+    # find_library(LIBICUI18N NAMES libicui18n.so)
+    # if (LIBICUI18N STREQUAL "LIBICUI18N-NOTFOUND")
+    #     message(FATAL_ERROR "libicui18n not found")
+    # endif()
 
-    target_link_libraries(ExtQt5ForGUI 
-        INTERFACE
-            ${LIBICUDATA}
-            ${LIBICUUC}
-            ${LIBICUI18N}
-    )
+    # target_link_libraries(ExtQt5ForGUI 
+    #     INTERFACE
+    #         ${LIBICUDATA}
+    #         ${LIBICUUC}
+    #         ${LIBICUI18N}
+    # )
 endif()

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.24)
 
 set(FOLDER_NAME ${PROJECT_FOLDER_SDK_EXTERNAL})
 
