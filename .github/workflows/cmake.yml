@@ -3,7 +3,8 @@ name: CMake
 on: 
   push:
     branches:
-    - master
+      - master
+      - linux-build-fixes # Temporary branch for Linux build fixes
   pull_request:
   
 env:

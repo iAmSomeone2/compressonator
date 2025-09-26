@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.24)
 
 message(STATUS "++++++++++++++++++ External GLFW" )
 
@@ -9,20 +9,13 @@ SET(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs" FORCE)
 SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation" FORCE)
 SET(GLFW_INSTALL OFF CACHE BOOL "Generate installation target" FORCE)
 
-ExternalProject_Add(extern_glfw
-    SOURCE_DIR ${PROJECT_SOURCE_DIR}/../common/lib/ext/glfw
-    BINARY_DIR ${PROJECT_SOURCE_DIR}/../common/lib/ext/glfw/build
-    INSTALL_COMMAND cmake -E echo "Skipping install step."
+FetchContent_Declare(glfw3
+    GIT_REPOSITORY "https://github.com/glfw/glfw.git"
+    GIT_TAG "7b6aead9fb88b3623e3b3725ebb42670cbe4c579" # v3.4.0
+    GIT_SHALLOW true
+    FIND_PACKAGE_ARGS 3.4
 )
-
-set_target_properties(extern_glfw PROPERTIES FOLDER ${PROJECT_FOLDER_SDK_EXTERNAL})
-
-add_library(ExtGLFW INTERFACE)
-
-set(GLFW_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../common/lib/ext/glfw/include)
-
-target_include_directories(ExtGLFW INTERFACE ${PROJECT_SOURCE_DIR}/../common/lib/ext/glfw/include)
-
-target_link_libraries(ExtGLFW INTERFACE
-    ${PROJECT_SOURCE_DIR}/../common/lib/ext/glfw/build/src/$<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:Release>/glfw3.lib
-)
+#FetchContent_MakeAvailable(glfw3)
+#
+#add_library(ExtGLFW INTERFACE)
+#target_link_libraries(ExtGLFW INTERFACE glfw)

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.24)
 
 # CMakeLists.txt
 message(STATUS "++++++++++++++++++ " )
@@ -9,32 +9,9 @@ message(STATUS "++++++++++++++++++ " )
 #   cmake_policy(SET CMP0091 NEW)
 # endif()
 
-if (CMP_HOST_WINDOWS)
-    # build project files
-    ExternalProject_Add(extern_ktx
-        PREFIX ${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx
-        SOURCE_DIR ${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx
-        BINARY_DIR ${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx/build
-        DOWNLOAD_DIR .
-        CMAKE_ARGS 
-            -DCMAKE_INSTALL_PREFIX:PATH=${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx
-            -G ${CMAKE_GENERATOR}
-    )
-
-    set_target_properties(extern_ktx PROPERTIES FOLDER ${PROJECT_FOLDER_SDK_EXTERNAL})
-endif()
-
-#project(CompressonatorGLEW)
-add_library(ExtKTX INTERFACE)
-
-set(ExtKTX_BIN_PATH ${PROJECT_SOURCE_DIR}/../common/lib/ext/glew/1.9.0/bin/x64)
-
-target_link_libraries(ExtKTX INTERFACE
-    ${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx/build/$<$<CONFIG:Debug>:debug>$<$<CONFIG:Release>:release>/ktx.lib
-)
-
-target_include_directories(ExtKTX INTERFACE
-    ${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx/other_include
-    ${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx/include
-    ${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx/lib
+FetchContent_Declare(KTX
+    GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
+    GIT_TAG "beef80159525d9fb7abb8645ea85f4c4f6842e8f" # v4.4
+    GIT_SHALLOW
+    GIT_PROGRESS
 )

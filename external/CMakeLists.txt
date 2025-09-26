@@ -1,17 +1,26 @@
 cmake_minimum_required(VERSION 3.24)
 
+include(FetchContent)
+
 set(FOLDER_NAME ${PROJECT_FOLDER_SDK_EXTERNAL})
 
-message(STATUS "++++++++++++++++++External CMakeList called" )
+message(STATUS "++++++++++++++++++ External CMakeList called" )
 
+set(FETCH_PKGS)
 if (OPTION_BUILD_APPS_CMP_CLI OR OPTION_BUILD_APPS_CMP_GUI)
     include(${CMAKE_CURRENT_LIST_DIR}/glew/CMakeLists.txt)
     include(${CMAKE_CURRENT_LIST_DIR}/glm/CMakeLists.txt)
+    include(${CMAKE_CURRENT_LIST_DIR}/glfw/CMakeLists.txt)
+    list(APPEND FETCH_PKGS
+            GLEW
+            glm
+            glfw3
+    )
+
     include(${CMAKE_CURRENT_LIST_DIR}/opengl/CMakeLists.txt)
     include(${CMAKE_CURRENT_LIST_DIR}/qt5/CMakeLists.txt)
-    include(${CMAKE_CURRENT_LIST_DIR}/rapidxml/CMakeLists.txt)
+    include_directories(${CMAKE_CURRENT_LIST_DIR}/rapidxml)
     include(${CMAKE_CURRENT_LIST_DIR}/vulkan/CMakeLists.txt)
-    include(${CMAKE_CURRENT_LIST_DIR}/glfw/CMakeLists.txt)
 endif()
 
 if (OPTION_BUILD_BROTLIG)
@@ -21,12 +30,13 @@ endif()
 # enable KTX2 features
 if(OPTION_BUILD_KTX2)
     include(${CMAKE_CURRENT_LIST_DIR}/ktx/CMakeLists.txt)
+    list(APPEND FETCH_PKGS KTX)
 endif()
 
 list(APPEND CMAKE_FIND_ROOT_PATH ${DEPENDENCIES_INSTALL_DIR})
 
 #append know paths to cmake search path
-list(APPEND CMAKE_FIND_ROOT_PATH ${CMAKE_CURRENT_LIST_DIR}/glew/glew_1.9.0)
+#list(APPEND CMAKE_FIND_ROOT_PATH ${CMAKE_CURRENT_LIST_DIR}/glew/glew_1.9.0)
 
 set(PATH_SUFFIXES lib)
 
@@ -78,3 +88,4 @@ if (OPTION_BUILD_EXR)
     include(${CMAKE_CURRENT_LIST_DIR}/openexr/CMakeLists.txt)
 endif()
 
+FetchContent_MakeAvailable("${FETCH_PKGS}")

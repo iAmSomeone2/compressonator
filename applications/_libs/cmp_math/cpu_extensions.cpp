@@ -57,6 +57,8 @@ bool IsAvailableAVX512(CPUExtensions extensions)
              extensions.extensionList[EXTENSION_AVX512_VBMI]) != 0);
 }
 
+// TODO: Implement CPU extension detection for Linux
+
 CPUExtensions GetCPUExtensions()
 {
     CPUExtensions result = {};
