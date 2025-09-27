@@ -238,19 +238,19 @@ ProjectView::ProjectView(const QString title, CompressStatusDialog* StatusDialog
 
     m_NumItems = 0;
 
-    m_CurrentItem = NULL;
+    m_CurrentItem = nullptr;
 
     // True when any changes were made to the project
 
     m_saveProjectChanges  = false;
     m_AllItemsSelected    = false;
-    ContextMenu_ImageItem = NULL;
+    ContextMenu_ImageItem = nullptr;
 
     // Tracks what Compressed Image Tree Item has been clicked on
-    m_CurrentCompressedImageItem = NULL;
+    m_CurrentCompressedImageItem = nullptr;
     g_bCompressing               = false;
 
-    // Enables diplay of checked box next to items
+    // Enables display of checked box next to items
     m_EnableCheckedItemsView                      = false;
     m_processFromContext                          = false;
     m_globalProcessSetting.m_Quality              = 1.0f;
@@ -282,21 +282,21 @@ ProjectView::ProjectView(const QString title, CompressStatusDialog* StatusDialog
     m_ImageFileFilter = "Images (";  //  "Image Files (*.*);;";
 
     QString imageList = "";
+    for (auto & fileFormatBytes : m_supportedFormats) {
+        const auto fileFormat = QString::fromUtf8(fileFormatBytes).toLower();
 
-    // QList<QByteArray>::Iterator i;
-    // for (i = m_supportedFormats.begin(); i != m_supportedFormats.end(); ++i) {
-    //     QByteArray fformat = (*i);
-    //     m_ImageFileFilter.append("*.");
-    //     m_ImageFileFilter.append(fformat);
-    //     m_ImageFileFilter.append(" ");
-    //
-    //     imageList.append("*.");
-    //     imageList.append(fformat);
-    //     imageList.append(";;");
-    // }
+        m_ImageFileFilter.append("*.");
+        m_ImageFileFilter.append(fileFormat);
+        m_ImageFileFilter.append(" ");
+
+        imageList.append("*.");
+        imageList.append(fileFormat);
+        imageList.append(";;");
+    }
 
     m_ImageFileFilter.append(");;");
     m_ImageFileFilter.append(imageList);
+    m_ImageFileFilter.append("All Files (*)");
 
     connect(&static_processmsghandler, SIGNAL(signalProcessMessage()), this, SLOT(onSignalProcessMessage()));
 
@@ -616,25 +616,25 @@ ProjectView::~ProjectView()
     if (m_imageloader)
     {
         delete m_imageloader;
-        m_imageloader = NULL;
+        m_imageloader = nullptr;
     }
 
     if (m_newProjectwindow)
     {
         delete m_newProjectwindow;
-        m_newProjectwindow = NULL;
+        m_newProjectwindow = nullptr;
     }
 
     if (m_diffImageDialog)
     {
         delete m_diffImageDialog;
-        m_diffImageDialog = NULL;
+        m_diffImageDialog = nullptr;
     }
 
     if (m_3DMeshAnalysisDlg)
     {
         delete m_3DMeshAnalysisDlg;
-        m_3DMeshAnalysisDlg = NULL;
+        m_3DMeshAnalysisDlg = nullptr;
     }
 }
 
@@ -709,7 +709,7 @@ bool ProjectView::OpenImageFile()
     {
         for (int i = 0; i < ls.size(); i++)
         {
-            C_Source_Info* m_dataout = NULL;
+            C_Source_Info* m_dataout = nullptr;
             if (Tree_AddImageFile(ls[i], 0, &m_dataout))
             {
                 QFileInfo FileInfo(ls[i]);
@@ -1010,7 +1010,7 @@ void ProjectView::DeleteItemData(QTreeWidgetItem* item, bool userdeleted)
     case TREETYPE_MESH_DATA: {  // Project Explorer sub tree item
         v                           = item->data(TREE_SourceInfo, Qt::UserRole);
         C_Destination_Options* data = v.value<C_Destination_Options*>();
-        if (data == NULL)
+        if (data == nullptr)
             return;
         QString filePathName = data->m_destFileNamePath;
 
@@ -1056,7 +1056,7 @@ void ProjectView::DeleteItemData(QTreeWidgetItem* item, bool userdeleted)
     case TREETYPE_COMPRESSION_DATA: {  // Project Explorer sub tree item
         v                           = item->data(TREE_SourceInfo, Qt::UserRole);
         C_Destination_Options* data = v.value<C_Destination_Options*>();
-        if (data == NULL)
+        if (data == nullptr)
             return;
         QString filePathName = data->m_destFileNamePath;
 
@@ -1115,12 +1115,12 @@ QTreeWidgetItem* ProjectView::GetCurrentItem(int matchType)
     // check if new items exit to process
     int topCount = m_projectTreeView->topLevelItemCount();
     if (topCount == 1)
-        return NULL;
+        return nullptr;
 
     //use tree
     QTreeWidgetItem* item = m_projectTreeView->currentItem();
     if (!item)
-        return NULL;
+        return nullptr;
 
     int itemType = GetItemType(item);
 
@@ -1139,7 +1139,7 @@ QTreeWidgetItem* ProjectView::GetCurrentItem(int matchType)
             return m_CurrentItem;
     }
 
-    return (NULL);
+    return (nullptr);
 }
 
 QTreeWidgetItem* ProjectView::GetCurrentItem()
@@ -1153,7 +1153,7 @@ QTreeWidgetItem* ProjectView::GetCurrentItem()
     // else use tree
     QTreeWidgetItem* item = m_projectTreeView->currentItem();
     if (!item)
-        return NULL;
+        return nullptr;
 
     int itemType = GetItemType(item);
 
@@ -1162,7 +1162,7 @@ QTreeWidgetItem* ProjectView::GetCurrentItem()
     {
         return (item);
     }
-    return (NULL);
+    return (nullptr);
 }
 
 // Delete an Image Item from the project view
@@ -1189,13 +1189,13 @@ void ProjectView::UserDeleteItems()
     {
         DeleteAllSeletedItems(true);
     }
-    emit UpdateData(NULL);
+    emit UpdateData(nullptr);
 }
 
 QTreeWidgetItem* ProjectView::DeleteSelectedItemData(QTreeWidgetItem* item, bool RemoveFromDisk)
 {
     if (!item)
-        return (NULL);
+        return (nullptr);
 
     QVariant v         = item->data(TREE_LevelType, Qt::UserRole);
     int      levelType = v.toInt();
@@ -1232,7 +1232,7 @@ QTreeWidgetItem* ProjectView::DeleteSelectedItemData(QTreeWidgetItem* item, bool
                     {
                         v                           = child->data(TREE_SourceInfo, Qt::UserRole);
                         C_Destination_Options* data = v.value<C_Destination_Options*>();
-                        if (data == NULL)
+                        if (data == nullptr)
                         {
                             --childcount;
                             --m_NumItems;
@@ -1499,7 +1499,7 @@ QTreeWidgetItem* ProjectView::DeleteSelectedItemData(QTreeWidgetItem* item, bool
         if (item)
         {
             delete item;
-            item = NULL;
+            item = nullptr;
         }
     }
 
@@ -1553,8 +1553,8 @@ QTreeWidgetItem* ProjectView::Tree_SetCurrentItem(QString FilePathName)
         return item;
     }
 
-    m_CurrentItem = NULL;
-    return NULL;
+    m_CurrentItem = nullptr;
+    return nullptr;
 }
 
 void ProjectView::saveToBatchFile()
@@ -1815,7 +1815,7 @@ void ProjectView::saveProjectFile()
             int            childcount = (*it)->childCount();
             QVariant       v          = (*it)->data(TREE_SourceInfo, Qt::UserRole);
             C_Source_Info* m_data     = v.value<C_Source_Info*>();
-            if (m_data == NULL)
+            if (m_data == nullptr)
             {
                 ++it;
                 continue;
@@ -1906,7 +1906,7 @@ void ProjectView::saveProjectFile()
         {
             QVariant        v      = (*it)->data(TREE_SourceInfo, Qt::UserRole);
             C_3DModel_Info* m_data = v.value<C_3DModel_Info*>();
-            if (m_data == NULL)
+            if (m_data == nullptr)
             {
                 ++it;
                 continue;
@@ -2134,7 +2134,7 @@ bool ProjectView::loadProjectFile(QString fileToLoad)
             if (FilePathName.length() > 0)
             {
                 // Add the file to our Project View
-                C_Source_Info*   m_dataout = NULL;
+                C_Source_Info*   m_dataout = nullptr;
                 QTreeWidgetItem* Imageitem = Tree_AddImageFile(FilePathName, 0, &m_dataout);
 
                 if (Imageitem)
@@ -2660,8 +2660,8 @@ void ProjectView::onSetNewProject(QString& FilePathName)
     m_saveProjectChanges     = false;
     if (m_CompressStatusDialog)
         m_CompressStatusDialog->onClearText();
-    m_CurrentCompressedImageItem = NULL;
-    emit UpdateData(NULL);
+    m_CurrentCompressedImageItem = nullptr;
+    emit UpdateData(nullptr);
 }
 
 bool ProgressCallback(float fProgress, CMP_DWORD_PTR pUser1, CMP_DWORD_PTR pUser2)
@@ -2823,9 +2823,9 @@ void ProjectView::analyseMeshData()
                 PluginInterface_3DModel_Loader* m_plugin_loader;
                 m_plugin_loader = reinterpret_cast<PluginInterface_3DModel_Loader*>(g_pluginManager.GetPlugin("3DMODEL_LOADER", c_ext));
 
-                void* msgHandler = NULL;
+                void* msgHandler = nullptr;
 
-                cpMainComponents* mainComponents = NULL;
+                cpMainComponents* mainComponents = nullptr;
                 mainComponents                   = (cpMainComponents*)m_parent;
                 if (mainComponents)
                     msgHandler = (void*)mainComponents->PrintStatus;
@@ -2879,7 +2879,7 @@ void ProjectView::analyseMeshData()
                     }
                 }
                 hideProgressDialog();
-                run3DMeshAnalysis(&(m_data->m_ModelData), NULL);
+                run3DMeshAnalysis(&(m_data->m_ModelData), nullptr);
                 if (m_plugin_loader)
                 {
                     delete m_plugin_loader;
@@ -2900,9 +2900,9 @@ void ProjectView::analyseMeshData()
                 PluginInterface_3DModel_Loader* m_subplugin_loader;
                 m_subplugin_loader = reinterpret_cast<PluginInterface_3DModel_Loader*>(g_pluginManager.GetPlugin("3DMODEL_LOADER", c_ext));
 
-                void* msgHandler = NULL;
+                void* msgHandler = nullptr;
 
-                cpMainComponents* mainComponents = NULL;
+                cpMainComponents* mainComponents = nullptr;
                 mainComponents                   = (cpMainComponents*)m_parent;
                 if (mainComponents)
                     msgHandler = (void*)mainComponents->PrintStatus;
@@ -2969,9 +2969,9 @@ void ProjectView::analyseMeshData()
                         PluginInterface_3DModel_Loader* m_plugin_loader;
                         m_plugin_loader = reinterpret_cast<PluginInterface_3DModel_Loader*>(g_pluginManager.GetPlugin("3DMODEL_LOADER", c_ext));
 
-                        void* msgHandler = NULL;
+                        void* msgHandler = nullptr;
 
-                        cpMainComponents* mainComponents = NULL;
+                        cpMainComponents* mainComponents = nullptr;
                         mainComponents                   = (cpMainComponents*)m_parent;
                         if (mainComponents)
                             msgHandler = (void*)mainComponents->PrintStatus;
@@ -3034,11 +3034,11 @@ void ProjectView::analyseMeshData()
                         }
                     }
                     else
-                        run3DMeshAnalysis(&(m_data->m_ModelData), NULL);
+                        run3DMeshAnalysis(&(m_data->m_ModelData), nullptr);
                 }
                 else
                 {
-                    run3DMeshAnalysis(&(m_data->m_ModelData), NULL);
+                    run3DMeshAnalysis(&(m_data->m_ModelData), nullptr);
                 }
 
                 if (m_subplugin_loader)
@@ -3182,7 +3182,7 @@ void ProjectView::SetupTreeView()
     m_projectTreeView->hideColumn(1);
     m_projectTreeView->setColumnWidth(1, 0);
     m_projectTreeView->setColumnWidth(2, 5);
-    m_CurrentItem = NULL;
+    m_CurrentItem = nullptr;
 
     // Set Icon size
     QSize size;
@@ -3308,7 +3308,7 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
 {
     Q_UNUSED(index);
 
-    QTreeWidgetItem* treeItem = NULL;
+    QTreeWidgetItem* treeItem = nullptr;
     QString          filename;
     QFile            SourceFile(filePathName);
 
@@ -3319,14 +3319,14 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
             PrintInfo("Error: SourceFile %s not found.\n", filePathName.toStdString().c_str());
         else
             PrintInfo("Error: SourceFile not found.\n");
-        return NULL;
+        return nullptr;
     }
 
     // Check if item already exist if so just exit
     if (Tree_FindImageItem(filePathName, false))
     {
         PrintInfo("Error: item already exist in project tree (%s).\n", filePathName.toStdString().c_str());
-        return NULL;
+        return nullptr;
     }
 
     // Get file Extension and check if it can be loaded by our AMD plugin or is supported by QT, return if is unsupported format
@@ -3345,7 +3345,7 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
         // The file is not an image checking other supported formats
         if (!g_pluginManager.PluginSupported("3DMODEL_LOADER", (char*)Ext))
         {
-            return NULL;
+            return nullptr;
         }
         isImage = false;
     }
@@ -3354,7 +3354,7 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
     if (strcmp(Ext, "CPRJ") == 0)
     {
         PrintInfo("Error:.cprj is detected as .svg file by qt support format ");
-        return NULL;
+        return nullptr;
     }
 
     //check the support format detected by QT
@@ -3396,10 +3396,10 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
     if (isImage)
     {
         C_Source_Info* m_data = new C_Source_Info();
-        if (m_data == NULL)
+        if (m_data == nullptr)
         {
-            PrintInfo("Error: Tree_AddImageFile m_data is null");
-            return NULL;
+            PrintInfo("Error: Tree_AddImageFile m_data is nullptr");
+            return nullptr;
         }
 
         *m_dataout = m_data;
@@ -3431,7 +3431,7 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
                     m_CompressStatusDialog->showOutput();
                 }
                 PrintInfo("Add Image Error: %s.\n", (m_data->m_MipImages->errMsg).c_str());
-                return NULL;
+                return nullptr;
             }
             if (m_data->m_MipImages->mipset)
             {
@@ -3472,7 +3472,7 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
         treeItem->setData(TREE_SourceInfo, Qt::UserRole, QVariant::fromValue(m_data));
 
         // Add compression setting option under the new item
-        Tree_AddCompressFile(treeItem, STR_AddDestinationSetting, false, false, TREETYPE_Add_destination_setting, NULL);
+        Tree_AddCompressFile(treeItem, STR_AddDestinationSetting, false, false, TREETYPE_Add_destination_setting, nullptr);
 
         emit OnAddedImageSourceNode();
     }
@@ -3511,7 +3511,7 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
                 treeItem->setText(2, "???");
                 treeItem->setToolTip(2, "glTF DX12 is not supported!");
                 PrintInfo("Error: Loading glTF failed. glTF with DX12 only supported on Win10 RS2 or later.\n");
-                return NULL;
+                return nullptr;
             }
         }
 #endif
@@ -3519,9 +3519,9 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
         treeItem->setToolTip(2, "show model image files");
 
         C_3DModel_Info* m_data = new C_3DModel_Info();
-        if (m_data == NULL)
+        if (m_data == nullptr)
         {
-            return NULL;
+            return nullptr;
         }
 
         m_data->m_Name      = filename;
@@ -3568,7 +3568,7 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
                 if (g_pProgressDlg)
                     g_pProgressDlg->SetLabelText(QString::fromStdString(name));
 
-                QTreeWidgetItem* child = NULL;
+                QTreeWidgetItem* child = nullptr;
 
                 if (str.contains("bin"))
                     child = Tree_Add3DModelMeshFile(
@@ -3655,7 +3655,7 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
             }
             // Add compression setting option under the new item
             treeItem->setData(TREE_SourceInfo, Qt::UserRole, QVariant::fromValue(m_data));
-            Tree_AddCompressFile(treeItem, STR_AddModelDestinationSetting, false, false, TREETYPE_Add_Model_destination_settings, NULL);
+            Tree_AddCompressFile(treeItem, STR_AddModelDestinationSetting, false, false, TREETYPE_Add_Model_destination_settings, nullptr);
 
             // Add the image to the diff image list if it is not in the list
             if ((!(m_ImagesinProjectTrees.contains(filePathName))) && (!(filePathName.contains(".gltf"))) && (!(filePathName.contains(".obj"))))
@@ -3666,7 +3666,7 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
             m_data->ModelType = eModelType::OBJ;
             // Add compression setting option under the new item
             treeItem->setData(TREE_SourceInfo, Qt::UserRole, QVariant::fromValue(m_data));
-            Tree_AddCompressFile(treeItem, STR_AddModelDestinationSetting, false, false, TREETYPE_Add_Model_destination_settings, NULL);
+            Tree_AddCompressFile(treeItem, STR_AddModelDestinationSetting, false, false, TREETYPE_Add_Model_destination_settings, nullptr);
 
             Model_Image model_image;
             model_image.m_isImage      = false;
@@ -3682,12 +3682,12 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
             if (g_pProgressDlg)
                 g_pProgressDlg->SetLabelText("Loading " + filename);
 
-            PluginInterface_3DModel_Loader* plugin_loader = NULL;
+            PluginInterface_3DModel_Loader* plugin_loader = nullptr;
             plugin_loader = reinterpret_cast<PluginInterface_3DModel_Loader*>(g_pluginManager.GetPlugin("3DMODEL_LOADER", "OBJ"));
             if (plugin_loader)
             {
                 plugin_loader->TC_PluginSetSharedIO(g_GUI_CMIPS);
-                int result = plugin_loader->LoadModelData(m_data->m_Full_Path.toStdString().data(), "", &g_pluginManager, NULL, &ProgressCallback);
+                int result = plugin_loader->LoadModelData(m_data->m_Full_Path.toStdString().data(), "", &g_pluginManager, nullptr, &ProgressCallback);
                 if (result != 0)
                 {
                     if (m_CompressStatusDialog)
@@ -3707,7 +3707,7 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
             if (plugin_loader)
             {
                 delete plugin_loader;
-                plugin_loader = NULL;
+                plugin_loader = nullptr;
             }
 #endif
         }
@@ -3727,7 +3727,7 @@ QTreeWidgetItem* ProjectView::Tree_AddImageFile(QString filePathName, int index,
 
 void ProjectView::Tree_Add3DSubModelFile(QTreeWidgetItem* ParentItem, QString filePathName, QList<bool>* srcDelFlags)
 {
-    QTreeWidgetItem* treeItem = NULL;
+    QTreeWidgetItem* treeItem = nullptr;
     QString          filename;
     QFile            SourceFile(filePathName);
 
@@ -3768,7 +3768,7 @@ void ProjectView::Tree_Add3DSubModelFile(QTreeWidgetItem* ParentItem, QString fi
 
     // Create Data for this file and set current know values
     C_3DSubModel_Info* m_data = new C_3DSubModel_Info();
-    if (m_data == NULL)
+    if (m_data == nullptr)
     {
         return;
     }
@@ -3851,7 +3851,7 @@ void ProjectView::Tree_Add3DSubModelFile(QTreeWidgetItem* ParentItem, QString fi
             m_data->m_SubModel_Images.append(model_image);  // This should be replaced by m_SubModel_Images
         }
 
-        if (srcDelFlags != NULL)
+        if (srcDelFlags != nullptr)
         {
             int indexStart = (int)buffers.size();
             if (srcDelFlags->size() <= (m_data->m_Model_Images.size() - indexStart))
@@ -3887,7 +3887,7 @@ void ProjectView::Tree_Add3DSubModelFile(QTreeWidgetItem* ParentItem, QString fi
     // Add compression setting option under the new item
     treeItem->setData(TREE_SourceInfo, Qt::UserRole, QVariant::fromValue(m_data));
     // Add compression setting option under the new item
-    Tree_AddCompressFile(treeItem, STR_AddDestinationSetting, false, false, TREETYPE_Add_destination_setting, NULL);
+    Tree_AddCompressFile(treeItem, STR_AddDestinationSetting, false, false, TREETYPE_Add_destination_setting, nullptr);
 
     // QTreeWidgetItem *parent = ParentItem->parent();
     ParentItem->addChild(treeItem);
@@ -3903,8 +3903,8 @@ QTreeWidgetItem* ProjectView::Tree_Add3DModelImageFiles(QTreeWidgetItem*  Parent
     Q_UNUSED(checkable)
     Q_UNUSED(checked)
     Q_UNUSED(levelType)
-    if (ParentItem == NULL)
-        return NULL;
+    if (ParentItem == nullptr)
+        return nullptr;
 
     /**************
     File Exists
@@ -3915,7 +3915,7 @@ QTreeWidgetItem* ProjectView::Tree_Add3DModelImageFiles(QTreeWidgetItem*  Parent
     // file not found!
     if (!f.exists())
     {
-        return NULL;
+        return nullptr;
     }
 
     /*************************
@@ -3932,7 +3932,7 @@ QTreeWidgetItem* ProjectView::Tree_Add3DModelImageFiles(QTreeWidgetItem*  Parent
     QImageReader imageFormat(filePathName);
     if (!(imageFormat.canRead()) && !(g_pluginManager.PluginSupported("IMAGE", (char*)Ext)))
     {
-        return NULL;
+        return nullptr;
     }
 
     /***********************
@@ -3970,9 +3970,9 @@ QTreeWidgetItem* ProjectView::Tree_Add3DModelImageFiles(QTreeWidgetItem*  Parent
     Create Data for this file and set current know values
     *********************************************************/
     C_Source_Info* m_data = new C_Source_Info();
-    if (m_data == NULL)
+    if (m_data == nullptr)
     {
-        return NULL;
+        return nullptr;
     }
 
     m_data->m_Name      = filename;
@@ -4046,8 +4046,8 @@ QTreeWidgetItem* ProjectView::Tree_Add3DModelMeshFile(QTreeWidgetItem*  ParentIt
     Q_UNUSED(levelType)
     Q_UNUSED(pFeedbackProc)
 
-    if (ParentItem == NULL)
-        return NULL;
+    if (ParentItem == nullptr)
+        return nullptr;
 
     /**************
     File Exists
@@ -4058,7 +4058,7 @@ QTreeWidgetItem* ProjectView::Tree_Add3DModelMeshFile(QTreeWidgetItem*  ParentIt
     // file not found!
     if (!f.exists())
     {
-        return NULL;
+        return nullptr;
     }
 
     /***********************
@@ -4093,9 +4093,9 @@ QTreeWidgetItem* ProjectView::Tree_Add3DModelMeshFile(QTreeWidgetItem*  ParentIt
     Create Data for this file and set current know values
     *********************************************************/
     C_Mesh_Buffer_Info* m_data = new C_Mesh_Buffer_Info();
-    if (m_data == NULL)
+    if (m_data == nullptr)
     {
-        return NULL;
+        return nullptr;
     }
 
     m_data->m_Name      = filename;
@@ -4127,7 +4127,7 @@ void ProjectView::Tree_AddCompressFile(QTreeWidgetItem*       ParentItem,
                                        int                    levelType,
                                        C_Destination_Options* m_data)
 {
-    if (ParentItem == NULL)
+    if (ParentItem == nullptr)
         return;
 
     QTreeWidgetItem* treeItem = new QTreeWidgetItem();
@@ -4174,7 +4174,7 @@ void ProjectView::Tree_AddCompressFile(QTreeWidgetItem*       ParentItem,
             // get parent
             QTreeWidgetItem* parent = ParentItem->parent();
 
-            // if parent is null, return!
+            // if parent is nullptr, return!
             if (!parent)
             {
                 return;
@@ -4192,7 +4192,7 @@ void ProjectView::Tree_AddCompressFile(QTreeWidgetItem*       ParentItem,
                     C_3DSubModel_Info* imagedata = v.value<C_3DSubModel_Info*>();
                     if (imagedata)
                     {
-                        m_data->m_OriginalMipImages = NULL;
+                        m_data->m_OriginalMipImages = nullptr;
                         int index                   = 0;
                         while (index < imagedata->m_Model_Images.size())
                         {
@@ -4262,7 +4262,7 @@ void ProjectView::Tree_AddCompressFile(QTreeWidgetItem*       ParentItem,
             // get parent
             QTreeWidgetItem* parent = ParentItem->parent();
 
-            // if parent is null, Node itself is parent
+            // if parent is nullptr, Node itself is parent
             if (!parent)
             {
                 parent = ParentItem;
@@ -4303,7 +4303,7 @@ void ProjectView::Tree_AddCompressFile(QTreeWidgetItem*       ParentItem,
                         m_data->m_DstHeight         = 0;
                         m_data->m_HeightStr         = "";
                         m_data->m_WidthStr          = "";
-                        m_data->m_OriginalMipImages = NULL;
+                        m_data->m_OriginalMipImages = nullptr;
                         m_data->m_modelSource       = imagedata->m_Full_Path;
                         m_data->m_Model_Images      = imagedata->m_Model_Images;
                     }
@@ -4316,7 +4316,7 @@ void ProjectView::Tree_AddCompressFile(QTreeWidgetItem*       ParentItem,
                     C_3DSubModel_Info* imagedata = v.value<C_3DSubModel_Info*>();
                     if (imagedata)
                     {
-                        m_data->m_OriginalMipImages = NULL;
+                        m_data->m_OriginalMipImages = nullptr;
                         int index                   = 0;
                         while (index < imagedata->m_Model_Images.size())
                         {
@@ -4363,7 +4363,7 @@ void ProjectView::Tree_AddCompressFile(QTreeWidgetItem*       ParentItem,
         if (treeItem)
         {
             delete treeItem;
-            treeItem = NULL;
+            treeItem = nullptr;
         }
         break;
     }
@@ -4564,7 +4564,7 @@ QTreeWidgetItem* ProjectView::Tree_FindImageItem(QString filePathName, bool incl
         ++it;
     }
 
-    return NULL;
+    return nullptr;
 }
 
 void ProjectView::onTree_ItemClicked(QTreeWidgetItem* item, int column)
@@ -4594,7 +4594,7 @@ void ProjectView::onTree_ItemClicked(QTreeWidgetItem* item, int column)
     }
     else if (islevelType == TREETYPE_VIEWMESH_ONLY_NODE)
     {
-        m_CurrentCompressedImageItem = NULL;
+        m_CurrentCompressedImageItem = nullptr;
 
         // view gltf bin
         QVariant            v      = item->data(TREE_SourceInfo, Qt::UserRole);
@@ -4610,7 +4610,7 @@ void ProjectView::onTree_ItemClicked(QTreeWidgetItem* item, int column)
     }
     else if ((islevelType == TREETYPE_IMAGEFILE_DATA) || (islevelType == TREETYPE_VIEWIMAGE_ONLY_NODE))
     {
-        m_CurrentCompressedImageItem = NULL;
+        m_CurrentCompressedImageItem = nullptr;
 
         emit OnSourceImage(item->childCount());
 
@@ -4684,7 +4684,7 @@ void ProjectView::onTree_ItemClicked(QTreeWidgetItem* item, int column)
     }
     else if (islevelType == TREETYPE_3DMODEL_DATA)
     {
-        m_CurrentCompressedImageItem = NULL;
+        m_CurrentCompressedImageItem = nullptr;
 
         if (column == 2)
         {
@@ -4814,8 +4814,8 @@ void ProjectView::onTree_ItemClicked(QTreeWidgetItem* item, int column)
     }
     else
     {
-        m_CurrentCompressedImageItem = NULL;
-        emit UpdateData(NULL);
+        m_CurrentCompressedImageItem = nullptr;
+        emit UpdateData(nullptr);
     }
 }
 
@@ -4926,7 +4926,7 @@ void ProjectView::onCustomContextMenu(const QPoint& point)
     actViewImageDiff->setVisible(false);
     actView3DModelDiff->setVisible(false);
     actRemoveImage->setVisible(false);
-    ContextMenu_ImageItem = NULL;
+    ContextMenu_ImageItem = nullptr;
 
     if (index.isValid())
     {
@@ -5143,7 +5143,7 @@ void ProjectView::onEntered(const QModelIndex& index)
 
 void ProjectView::onDroppedImageItem(QString& filePathName, int index)
 {
-    C_Source_Info* m_dataout = NULL;
+    C_Source_Info* m_dataout = nullptr;
     Tree_AddImageFile(filePathName, index, &m_dataout);
     m_saveProjectChanges = true;
 }
@@ -5172,7 +5172,7 @@ void ProjectView::CompressSelectedItems()
     if (m_CompressStatusDialog)
     {
         saveProjectFile();
-        compressProjectFiles(NULL);
+        compressProjectFiles(nullptr);
         if (m_AllItemsSelected)
         {
             // Reset the list of selections
@@ -5312,7 +5312,7 @@ bool processItem(QFile*                  file,
                 }
 
                 // Saving paramaters to Batch file
-                if (file != NULL)
+                if (file != nullptr)
                 {
                     msgCommandLine = "";
                 }
@@ -5344,7 +5344,7 @@ bool processItem(QFile*                  file,
 
                 //"-fd Format"
                 QMetaObject meta = C_Destination_Options::staticMetaObject;
-                const char* key  = NULL;
+                const char* key  = nullptr;
 
                 int       indexCompression    = meta.indexOfEnumerator("eCompression_options");
                 QMetaEnum metaEnumCompression = meta.enumerator(indexCompression);
@@ -5352,7 +5352,7 @@ bool processItem(QFile*                  file,
                 CMP_FORMAT cmp_format         = CMP_ParseFormat((char*)key);
 
                 //"fd" = key
-                if (key != NULL)
+                if (key != nullptr)
                 {
                     std::string format = "-fd";
                     argvVec.push_back(CharArray(format.begin(), format.end()));
@@ -5859,7 +5859,7 @@ bool processItem(QFile*                  file,
                 //===========================
                 // Exporting to Batch file
                 //===========================
-                if (file != NULL)
+                if (file != nullptr)
                 {
                     if (msgCommandLine.length() > 0)
                     {
@@ -6146,7 +6146,7 @@ void AnalysisTableWidget::ClearResults()
 
 void CompressFiles(QFile* file, ProjectView* ProjectView)
 {
-    // if ((file == NULL) || (ProjectView == NULL))
+    // if ((file == nullptr) || (ProjectView == nullptr))
     //     return;
 
     struct Image_Data
@@ -6169,7 +6169,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
 
     ProjectView->m_CompressStatusDialog->showOutput();
 
-    if (g_pProgressDlg == NULL)
+    if (g_pProgressDlg == nullptr)
         return;
 
     g_pProgressDlg->SetValue(0);
@@ -6216,7 +6216,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
             //==========================================
             QVariant       v      = (*it)->data(TREE_SourceInfo, Qt::UserRole);
             C_Source_Info* m_data = v.value<C_Source_Info*>();
-            if (m_data == NULL)
+            if (m_data == nullptr)
             {
                 ++it;
                 continue;
@@ -6225,7 +6225,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
             QString FilePathName;
             FilePathName      = m_data->m_Full_Path;
             int miplevels     = 0;
-            sourceImageMipSet = NULL;
+            sourceImageMipSet = nullptr;
             //==========================================
             // TREETYPE_Add_destination_setting:
             // TREETYPE_COMPRESSION_DATA:
@@ -6274,7 +6274,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
         case TREETYPE_3DMODEL_DATA: {
             QVariant        v      = (*it)->data(TREE_SourceInfo, Qt::UserRole);
             C_3DModel_Info* m_data = v.value<C_3DModel_Info*>();
-            if (m_data == NULL)
+            if (m_data == nullptr)
             {
                 ++it;
                 continue;
@@ -6341,7 +6341,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
                                             QString FilePathName;
                                             FilePathName      = m_data->m_Full_Path;
                                             int miplevels     = 0;
-                                            sourceImageMipSet = NULL;
+                                            sourceImageMipSet = nullptr;
 
                                             if (m_data->m_MipImages)
                                             {
@@ -6434,7 +6434,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
                                     if (ProjectView->m_CompressStatusDialog)
                                         ProjectView->m_CompressStatusDialog->appendText(msgCommandLine);
 
-                                    PluginInterface_Mesh* plugin_Mesh = NULL;
+                                    PluginInterface_Mesh* plugin_Mesh = nullptr;
 
                                     plugin_Mesh = reinterpret_cast<PluginInterface_Mesh*>(g_pluginManager.GetPlugin("MESH_OPTIMIZER", "TOOTLE_MESH"));
 
@@ -6482,10 +6482,10 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
                                             if (m_plugin_loader)
                                             {
                                                 m_plugin_loader->TC_PluginSetSharedIO(g_GUI_CMIPS);
-                                                void* msgHandler = NULL;
+                                                void* msgHandler = nullptr;
                                                 if (ProjectView)
                                                 {
-                                                    cpMainComponents* mainComponents = NULL;
+                                                    cpMainComponents* mainComponents = nullptr;
                                                     mainComponents                   = (cpMainComponents*)ProjectView->m_parent;
                                                     if (mainComponents)
                                                         msgHandler = (void*)mainComponents->PrintStatus;
@@ -6522,7 +6522,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
 
                                             try
                                             {
-                                                modelDataOut = plugin_Mesh->ProcessMesh(modelDataIn, (void*)&uimeshsettings, NULL, &ProgressCallback);
+                                                modelDataOut = plugin_Mesh->ProcessMesh(modelDataIn, (void*)&uimeshsettings, nullptr, &ProgressCallback);
                                             }
                                             catch (std::exception& e)
                                             {
@@ -6632,7 +6632,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
                                                         }
                                                     }
 
-                                                    PluginInterface_3DModel_Loader* plugin_save = NULL;
+                                                    PluginInterface_3DModel_Loader* plugin_save = nullptr;
                                                     plugin_save =
                                                         reinterpret_cast<PluginInterface_3DModel_Loader*>(g_pluginManager.GetPlugin("3DMODEL_LOADER", c_ext));
                                                     if (plugin_save)
@@ -6764,7 +6764,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
                                     if (plugin_Mesh)
                                     {
                                         delete plugin_Mesh;
-                                        plugin_Mesh = NULL;
+                                        plugin_Mesh = nullptr;
                                     }
                                 }
 
@@ -6920,7 +6920,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
 #if (LIB_BUILD_MESHCOMPRESSOR)
                                     else
                                     {
-                                        PluginInterface_3DModel_Loader* m_plugin_loader_drc = NULL;
+                                        PluginInterface_3DModel_Loader* m_plugin_loader_drc = nullptr;
 
                                         PluginInterface_Mesh* plugin_MeshComp;
                                         plugin_MeshComp = reinterpret_cast<PluginInterface_Mesh*>(g_pluginManager.GetPlugin("MESH_COMPRESSOR", "DRACO"));
@@ -6966,10 +6966,10 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
                                                 if (m_plugin_loader_drc)
                                                 {
                                                     m_plugin_loader_drc->TC_PluginSetSharedIO(g_GUI_CMIPS);
-                                                    void* msgHandler = NULL;
+                                                    void* msgHandler = nullptr;
                                                     if (ProjectView)
                                                     {
-                                                        cpMainComponents* mainComponents = NULL;
+                                                        cpMainComponents* mainComponents = nullptr;
                                                         mainComponents                   = (cpMainComponents*)ProjectView->m_parent;
                                                         if (mainComponents)
                                                             msgHandler = (void*)mainComponents->PrintStatus;
@@ -6977,7 +6977,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
 
                                                     int result;
                                                     if (result = m_plugin_loader_drc->LoadModelData(
-                                                                     "OBJ", NULL, &g_pluginManager, &DracoOptions, &ProgressCallback) != 0)
+                                                                     "OBJ", nullptr, &g_pluginManager, &DracoOptions, &ProgressCallback) != 0)
                                                     {
                                                         if (result != 0)
                                                         {
@@ -6993,7 +6993,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
                                                     {
                                                         if (modelDataIn)
                                                             modelDataOut =
-                                                                plugin_MeshComp->ProcessMesh(modelDataIn, (void*)&DracoOptions, NULL, &ProgressCallback);
+                                                                plugin_MeshComp->ProcessMesh(modelDataIn, (void*)&DracoOptions, nullptr, &ProgressCallback);
                                                     }
                                                     catch (std::exception& e)
                                                     {
@@ -7086,7 +7086,7 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
     g_bCompressing                    = false;
     ProjectView->m_processFromContext = false;
 
-    if (ProjectView->m_CompressStatusDialog && (file == NULL) && (!g_bAbortCompression))
+    if (ProjectView->m_CompressStatusDialog && (file == nullptr) && (!g_bAbortCompression))
     {
         if ((NumberOfItemCompressed == 0) && (NumberOfItemCompressedFailed == 0))
         {
@@ -7205,10 +7205,10 @@ void CompressFiles(QFile* file, ProjectView* ProjectView)
 
 void ProjectView::compressProjectFiles(QFile* file)
 {
-    if (m_CompressStatusDialog == NULL)
+    if (m_CompressStatusDialog == nullptr)
         return;
 
-    if (g_pProgressDlg == NULL)
+    if (g_pProgressDlg == nullptr)
         return;
 
     g_bAbortCompression = false;

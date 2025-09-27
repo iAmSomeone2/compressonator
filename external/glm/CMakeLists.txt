@@ -13,7 +13,8 @@ FetchContent_Declare(
     glm
     GIT_REPOSITORY "https://github.com/g-truc/glm.git"
     GIT_TAG "0af55ccecd98d4e5a8d1fad7de25ba429d60e863" # v1.0.1
-    GIT_SHALLOW true
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
     FIND_PACKAGE_ARGS NAMES glm VERSION 1.0
 )
 #FetchContent_MakeAvailable(glm)

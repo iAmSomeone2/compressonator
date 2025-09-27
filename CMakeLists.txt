@@ -26,7 +26,7 @@ if (NOT CMP_VERSION_MAJOR)
 endif()
 
 if (NOT CMP_VERSION_MINOR)
-    set(CMP_VERSION_MINOR 5)
+    set(CMP_VERSION_MINOR 6)
 endif()
 
 if (NOT CMP_VERSION_BUILD_NUMBER)
@@ -57,13 +57,24 @@ elseif(CMP_COMPILER_CLANG)
     add_compile_options(-fcolor-diagnostics)
 endif()
 
-# Enable all warnings during debug builds
+
 if (CMP_IS_DEBUG_BUILD)
+    # Enable all warnings during debug builds
     if (CMP_COMPILER_MSVC)
         add_compile_options(/W4 /wd4201)
     elseif(CMP_COMPILER_GCC OR CMP_COMPILER_CLANG)
         add_compile_options(-Wall)
         #add_compile_options(-Wall -Werror)
+    endif()
+else()
+    # Try to enable LTO in release builds
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT ipo_supported OUTPUT output)
+    if(ipo_supported)
+        set_property(GLOBAL PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+        message(STATUS "IPO enabled for project")
+    else()
+        message(WARNING "IPO is not supported: ${output}")
     endif()
 endif()
 
@@ -170,7 +181,7 @@ set(LIB_BUILD_MESHCOMPRESSOR OFF)
 set(PROJECT_EXTERNAL_LIBDIR ${PROJECT_SOURCE_DIR}/../common/lib/ext)
 
 # ----------------------------------------------------------------------------
-# GPUOpen Source Code build options : These options are been revised for v4.2
+# GPUOpen Source Code build options : These options have been revised for v4.2
 # ----------------------------------------------------------------------------
 #              OPTION                    DESCRIPTION         REQUESTED VALUE          REQUIREMENT
 cmp_option(OPTION_BUILD_KTX2         "Build CLI KTX2 Support"        ON     CMAKE_VERSION VERSION_GREATER "3.14.0")
@@ -434,10 +445,8 @@ endif()
 # GUI - limited to Windows & Linux 
 if (NOT CMP_HOST_APPLE)
     if (OPTION_BUILD_APPS_CMP_GUI)
-        add_subdirectory(external/imgui)
-    endif()
-    if (OPTION_BUILD_APPS_CMP_GUI)
         message("Build GUI setup")
+#        add_subdirectory(external/imgui)
         add_subdirectory(applications/compressonatorgui)
         add_subdirectory(applications/_libs/cmp_meshoptimizer)
         add_subdirectory(applications/_plugins/common/gltf)

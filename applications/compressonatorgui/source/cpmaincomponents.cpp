@@ -1898,7 +1898,7 @@ void cpMainComponents::AddImageView(QString& fileName, QTreeWidgetItem* item)
             deleteImageAct->setEnabled(false);
         }
 
-        // Determin File Type
+        // Determine File Type
         QVariant v         = item->data(TREE_LevelType, Qt::UserRole);
         int      levelType = v.toInt();
 

@@ -45,11 +45,11 @@ target_include_directories(ModelViewer_DX12 PUBLIC
     ${PROJECT_SOURCE_DIR}/applications/_plugins/common/model_viewer
     ${PROJECT_SOURCE_DIR}/applications/_libs/cmp_meshoptimizer
     ${PROJECT_SOURCE_DIR}/applications/_plugins/common/qtimgui
-    ${PROJECT_SOURCE_DIR}/external/imgui
+#    ${PROJECT_SOURCE_DIR}/external/imgui
 
     ${PROJECT_SOURCE_DIR}/../common/lib/ext/glm
     ${Qt5Gui_INCLUDE_DIRS}
-    ${PROJECT_SOURCE_DIR}/../common/lib/ext/imgui 
+#    ${PROJECT_SOURCE_DIR}/../common/lib/ext/imgui
 )
 
 target_link_libraries(ModelViewer_DX12 PRIVATE
@@ -57,7 +57,7 @@ target_link_libraries(ModelViewer_DX12 PRIVATE
     CMP_Framework
     CMP_GUI_Gltf
     CMP_GpuDecode
-    extern_imgui
+    ImGui
     CMP_Common              # CModel Data
 )
 

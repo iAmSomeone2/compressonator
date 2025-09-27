@@ -42,5 +42,5 @@ target_include_directories(ExtVulkan INTERFACE
     ${Vulkan_INCLUDE_DIRS}
 )
 
-add_library(ExtGlslang INTERFACE)
-target_link_libraries(ExtGlslang INTERFACE Vulkan::Glslang Vulkan::SPIRV-Tools)
+#add_library(ExtGlslang INTERFACE)
+#target_link_libraries(ExtGlslang INTERFACE Vulkan::Glslang Vulkan::SPIRV-Tools)

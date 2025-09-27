@@ -46,6 +46,48 @@ set(PATH_SUFFIXES lib)
 find_package(Threads REQUIRED QUIET)
 
 # ====================================================
+#                    ImGui
+# ====================================================
+
+if (OPTION_BUILD_APPS_CMP_GUI AND NOT CMP_HOST_APPLE)
+    add_library(ImGui STATIC)
+
+    # Add standard required sources from root
+    file(GLOB imgui_srcs "${CMAKE_CURRENT_LIST_DIR}/imgui/*.cpp")
+    file(GLOB imgui_headers "${CMAKE_CURRENT_LIST_DIR}/imgui/*.h")
+    target_sources(ImGui PRIVATE
+            ${imgui_srcs}
+            ${imgui_headers}
+    )
+
+    # Add use-specific sources
+    target_sources(ImGui PRIVATE
+            "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_vulkan.h"
+            "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_vulkan.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_glfw.h"
+            "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_glfw.cpp"
+    )
+
+    # Link Vulkan and GLFW
+    target_link_libraries(ImGui PRIVATE Vulkan::Vulkan glfw)
+
+    # Add Windows sources
+    if (CMP_HOST_WINDOWS)
+        target_sources(ImGui PRIVATE
+                "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_dx11.h"
+                "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_dx11.cpp"
+                "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_dx12.h"
+                "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_dx12.cpp"
+                "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_win32.h"
+                "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_win32.cpp"
+        )
+    endif()
+
+    # Add backends folder to include paths
+    target_include_directories(ImGui INTERFACE "${CMAKE_CURRENT_LIST_DIR}/imgui/backends")
+endif()
+
+# ====================================================
 #                  DIRECTX
 # ====================================================
 if (OPTION_CMP_DIRECTX)

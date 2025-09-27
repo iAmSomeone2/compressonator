@@ -45,8 +45,8 @@ target_include_directories(ModelViewer_Vulkan PUBLIC
      ${PROJECT_SOURCE_DIR}/applications/_libs/gpu_decode
      ${PROJECT_SOURCE_DIR}/applications/_plugins/c3dmodel_viewers/vulkan/util
      ${PROJECT_SOURCE_DIR}/applications/_plugins/c3dmodel_viewers/gltf_dx12_ex/dx12util
-     ${PROJECT_SOURCE_DIR}/../common/lib/ext/imgui 
-     ${PROJECT_SOURCE_DIR}/../common/lib/ext/glm
+#     ${PROJECT_SOURCE_DIR}/../common/lib/ext/imgui
+#     ${PROJECT_SOURCE_DIR}/../common/lib/ext/glm
      ${Vulkan_INCLUDE_DIRS}
 )
 
@@ -54,11 +54,11 @@ target_link_libraries(ModelViewer_Vulkan
 
     PRIVATE
         ExtVulkan
-        ExtGLM
-        ExtGlslang
+        glm
+        Vulkan::Glslang
         ExtQt5Widgets
 
-        extern_imgui
+        ImGui
         CMP_Compressonator
         CMP_Framework
         CMP_GpuDecode
