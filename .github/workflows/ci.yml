@@ -12,11 +12,6 @@ jobs:
     container: fedora:42
 
     steps:
-      - uses: actions/checkout@v5
-        with:
-          submodules: true
-          fetch-depth: 1
-
       - name: Cache DNF packages
         uses: actions/cache@v4
         with:
@@ -32,6 +27,11 @@ jobs:
           qt5-qtbase-devel qt5-qtdeclarative-devel qt5-qtwebengine-devel \
           glew-devel glfw-devel glm-devel opencv-devel openexr-devel \
           libpng-devel wayland-devel
+
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+          fetch-depth: 1
 
       # TODO: Add ccache support
       
