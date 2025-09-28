@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.24)
 
 if(CMP_HOST_WINDOWS)
     # this must be before add_executable

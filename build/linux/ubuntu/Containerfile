@@ -1,0 +1,14 @@
+FROM ubuntu:24.04
+LABEL authors="Brenden Davidson <brenden@bdavidson.dev>"
+
+# Upgrade installed pkgs and install all build dependencies
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y \
+    g++ ninja-build cmake git libicu-dev \
+    vulkan-tools libvulkan-dev glslang-tools glslang-dev \
+    libglu1-mesa-dev libegl1-mesa-dev opencl-headers \
+    libxkbcommon-dev libxinerama-dev libxcursor-dev libxi-dev\
+    qtbase5-dev qtdeclarative5-dev qtwebengine5-dev libqt5opengl5-dev \
+    libglew-dev libglfw3-dev libglm-dev libopencv-dev libopenexr-dev \
+    libpng-dev libwayland-dev python3-sphinx && \
+    apt-get clean -y

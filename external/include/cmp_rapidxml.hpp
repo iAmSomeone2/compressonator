@@ -5,8 +5,8 @@
 #include "rapidxml-submodule/rapidxml.hpp"
 #include "rapidxml-submodule/rapidxml_utils.hpp"
 #else
-#include <rapidxml.hpp>
-#include <rapidxml_utils.hpp>
+#include <../rapidxml/rapidxml.hpp>
+#include <../rapidxml/rapidxml_utils.hpp>
 #endif
 /* Adding declarations to make it compatible with gcc 4.7 and greater */
 namespace rapidxml
@@ -44,6 +44,6 @@ namespace rapidxml
 #if defined(_WIN32) && !defined(NO_LEGACY_BEHAVIOR)
 #include "rapidxml-submodule/rapidxml_print.hpp"
 #else
-#include <rapidxml_print.hpp>
+#include <../rapidxml/rapidxml_print.hpp>
 #endif
 #endif

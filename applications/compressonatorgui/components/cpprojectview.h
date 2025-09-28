@@ -76,7 +76,7 @@ class signalProcessMsgHandler : public QObject
     Q_OBJECT
 
 public:
-    signalProcessMsgHandler(){};
+    signalProcessMsgHandler() {};
 
 Q_SIGNALS:
     void signalProcessMessage();

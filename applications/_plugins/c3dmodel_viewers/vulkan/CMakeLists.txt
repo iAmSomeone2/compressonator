@@ -53,9 +53,9 @@ target_include_directories(ModelViewer_Vulkan PUBLIC
 target_link_libraries(ModelViewer_Vulkan
 
     PRIVATE
-        ExtVulkan
+        Vulkan::Vulkan
         glm
-        Vulkan::Glslang
+        Vulkan::glslang
         ExtQt5Widgets
 
         ImGui

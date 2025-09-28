@@ -1,0 +1,13 @@
+FROM fedora:42
+LABEL authors="Brenden Davidson <brenden@bdavidson.dev>"
+
+# Upgrade installed pkgs and install all build dependencies
+RUN dnf upgrade -y && \
+    dnf install -y --setopt=install_weak_deps=False \
+    gcc-c++ ninja-build cmake git libicu-devel \
+    vulkan-tools vulkan-headers glslang-devel \
+    mesa-libGL-devel mesa-libGLU-devel mesa-libEGL-devel mesa-libOpenCL-devel \
+    qt5-qtbase-devel qt5-qtdeclarative-devel qt5-qtwebengine-devel \
+    glew-devel glfw-devel glm-devel opencv-devel openexr-devel \
+    libpng-devel wayland-devel python3-sphinx && \
+    dnf clean all -y

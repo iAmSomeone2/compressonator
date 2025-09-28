@@ -19,12 +19,13 @@ if (OPTION_BUILD_APPS_CMP_CLI OR OPTION_BUILD_APPS_CMP_GUI)
 
     include(${CMAKE_CURRENT_LIST_DIR}/opengl/CMakeLists.txt)
     include(${CMAKE_CURRENT_LIST_DIR}/qt5/CMakeLists.txt)
-    include_directories(${CMAKE_CURRENT_LIST_DIR}/rapidxml)
+    include_directories(${CMAKE_CURRENT_LIST_DIR}/rapidxml ${CMAKE_CURRENT_LIST_DIR}/include)
     include(${CMAKE_CURRENT_LIST_DIR}/vulkan/CMakeLists.txt)
 endif()
 
 if (OPTION_BUILD_BROTLIG)
     include(${CMAKE_CURRENT_LIST_DIR}/brotlig/CMakeLists.txt)
+    list(APPEND FETCH_PKGS brotlig)
 endif()
 
 # enable KTX2 features
@@ -53,27 +54,22 @@ if (OPTION_BUILD_APPS_CMP_GUI AND NOT CMP_HOST_APPLE)
     add_library(ImGui STATIC)
 
     # Add standard required sources from root
-    file(GLOB imgui_srcs "${CMAKE_CURRENT_LIST_DIR}/imgui/*.cpp")
-    file(GLOB imgui_headers "${CMAKE_CURRENT_LIST_DIR}/imgui/*.h")
-    target_sources(ImGui PRIVATE
-            ${imgui_srcs}
-            ${imgui_headers}
-    )
-
-    # Add use-specific sources
-    target_sources(ImGui PRIVATE
-            "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_vulkan.h"
-            "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_vulkan.cpp"
-            "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_glfw.h"
-            "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_glfw.cpp"
+    file(GLOB imgui_base_srcs
+        "${CMAKE_CURRENT_LIST_DIR}/imgui/*.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/imgui/*.h"
+        "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_vulkan.h"
+        "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_vulkan.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_glfw.h"
+        "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_glfw.cpp"
     )
 
     # Link Vulkan and GLFW
     target_link_libraries(ImGui PRIVATE Vulkan::Vulkan glfw)
 
     # Add Windows sources
+    set(imgui_win_srcs)
     if (CMP_HOST_WINDOWS)
-        target_sources(ImGui PRIVATE
+        list(APPEND imgui_win_srcs
                 "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_dx11.h"
                 "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_dx11.cpp"
                 "${CMAKE_CURRENT_LIST_DIR}/imgui/backends/imgui_impl_dx12.h"
@@ -83,8 +79,16 @@ if (OPTION_BUILD_APPS_CMP_GUI AND NOT CMP_HOST_APPLE)
         )
     endif()
 
+    target_sources(ImGui PUBLIC 
+        ${imgui_base_srcs}
+        ${imgui_win_srcs}
+    )
+
     # Add backends folder to include paths
-    target_include_directories(ImGui INTERFACE "${CMAKE_CURRENT_LIST_DIR}/imgui/backends")
+    target_include_directories(ImGui PUBLIC 
+        "${CMAKE_CURRENT_LIST_DIR}/imgui/backends"
+        "${CMAKE_CURRENT_LIST_DIR}/imgui"
+    )
 endif()
 
 # ====================================================
