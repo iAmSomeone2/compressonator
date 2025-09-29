@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-add_library(Image_KTX2 STATIC "")
+add_library(Image_KTX2 STATIC)
 
 target_sources(Image_KTX2
     PRIVATE
@@ -12,6 +12,8 @@ target_sources(Image_KTX2
     ${PROJECT_SOURCE_DIR}/applications/_plugins/cimage/ktx/softfloat.h
     )
 
+target_link_libraries(Image_KTX2 PRIVATE glew Vulkan::Vulkan ktx CMP_Compressonator CMP_Framework)
+
 target_include_directories(Image_KTX2
     PRIVATE
     ./
@@ -20,25 +22,27 @@ target_include_directories(Image_KTX2
     ${PROJECT_SOURCE_DIR}/applications/_libs/gpu_decode
     ${PROJECT_SOURCE_DIR}/cmp_framework/common/half
     ${PROJECT_SOURCE_DIR}/applications/_plugins/common
-    ${PROJECT_SOURCE_DIR}/../common/lib/ext/glew/1.9.0/include
-    )
+    ${Vulkan_INCLUDE_DIRS}
+    ${ktx_SOURCE_DIR}/include
+    ${ktx_SOURCE_DIR}/lib
+)
 
 
 # Enabled KTX2 Features
-if (CMP_HOST_WINDOWS)
-    target_include_directories(Image_KTX2
-      PRIVATE
-      ${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx/include
-      ${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx/lib
-      ${VULKAN_SDK_PATH}/include/
-      )
-
-    target_link_libraries(Image_KTX2 PRIVATE
-        CMP_Compressonator
-        CMP_Framework
-        ExtKTX
-        )
-endif()
+#if (CMP_HOST_WINDOWS)
+#    target_include_directories(Image_KTX2
+#      PRIVATE
+#      ${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx/include
+#      ${PROJECT_SOURCE_DIR}/../common/lib/ext/ktx/lib
+#      ${VULKAN_SDK_PATH}/include/
+#      )
+#
+#    target_link_libraries(Image_KTX2 PRIVATE
+#        CMP_Compressonator
+#        CMP_Framework
+#        ExtKTX
+#        )
+#endif()
 
 if (UNIX)
     target_compile_definitions(Image_KTX2 PRIVATE _LINUX)

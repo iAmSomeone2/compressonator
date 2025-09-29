@@ -27,7 +27,9 @@ jobs:
         # access regardless of the host operating system
         shell: bash
         working-directory: ${{github.workspace}}/cmake-build-release
-        run: cmake -S $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DOPTION_ENABLE_ALL_APPS=OFF -DOPTION_BUILD_APPS_CMP_CLI=ON -DOPTION_BUILD_APPS_CMP_GUI=ON -B .
+        run: cmake -GNinja -S $GITHUB_WORKSPACE -B . \
+          -DCMAKE_BUILD_TYPE=Release -DOPTION_ENABLE_ALL_APPS=OFF -DOPTION_BUILD_APPS_CMP_CLI=ON \
+          -DOPTION_BUILD_APPS_CMP_GUI=ON -DOPTION_CMP_VULKAN=ON
 
       - name: Build
         working-directory: ${{github.workspace}}/cmake-build-release

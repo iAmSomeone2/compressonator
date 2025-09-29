@@ -95,11 +95,7 @@ if (OPTION_BUILD_ASTC)
 endif()
 
 if (OPTION_BUILD_KTX2)
-    list(APPEND CMP_LIBS Image_KTX)
-
-    if (CMP_HOST_WINDOWS)
-        list(APPEND CMP_LIBS Image_KTX2)
-    endif()
+    list(APPEND CMP_LIBS Image_KTX Image_KTX2)
 endif()
 
 if (OPTION_BUILD_BROTLIG)

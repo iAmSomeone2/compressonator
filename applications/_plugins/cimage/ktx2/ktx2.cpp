@@ -22,31 +22,38 @@
 //
 
 // Windows Header Files:
+#include <cstdarg>
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
-#include "ktx2.h"
+// KTX lib
+#include <ktx.h>
+#include <ktx2.h>
+#include <ktxvulkan.h>
+#include <gl_format.h>
+#include <vk2gl.h>
+
 #include "tc_pluginapi.h"
 #include "tc_plugininternal.h"
 #include "common.h"
-#include "softfloat.h"
 
 #include "textureio.h"
 
+#include <cstddef>
 #include <sstream>
 #include <algorithm>
-#include <stdio.h>
-#include <stdlib.h>
 
-#include "gl_format.h"
 #pragma comment(lib, "opengl32.lib")  // Open GL
 #pragma comment(lib, "Glu32.lib")     // Glu
 #pragma comment(lib, "glew32.lib")    // glew
 
-using namespace std;
+using std::max;
 
-CMIPS* KTX2_CMips;
+namespace
+{
+CMIPS* ktX2CMips;
+}
 
 #ifdef BUILD_AS_PLUGIN_DLL
 DECLARE_PLUGIN(Plugin_KTX2)
@@ -64,19 +71,15 @@ static void writeId2(std::ostream& dst)
     dst << "glTF Compressonator v2.0";
 }
 
-Plugin_KTX2::Plugin_KTX2()
-{
-}
+Plugin_KTX2::Plugin_KTX2() = default;
 
-Plugin_KTX2::~Plugin_KTX2()
-{
-}
+Plugin_KTX2::~Plugin_KTX2() = default;
 
-int Plugin_KTX2::TC_PluginSetSharedIO(void* Shared)
+int Plugin_KTX2::TC_PluginSetSharedIO(void* shared)
 {
-    if (Shared)
+    if (shared)
     {
-        KTX2_CMips = static_cast<CMIPS*>(Shared);
+        ktX2CMips = static_cast<CMIPS*>(shared);
         return 0;
     }
     return 1;
@@ -104,542 +107,544 @@ int Plugin_KTX2::TC_PluginFileSaveTexture(const char* pszFilename, CMP_Texture* 
     return -1;
 }
 
+namespace
+{
+/**
+ * Attempts to apply a texture's image format to the matching MipSet settings
+ *
+ * @param pMipSet pointer to MipSet instance to modify
+ * @param texture shared ptr to ktxTexture2
+ * @return `true` if successful, `false` otherwise
+ */
+bool ApplyTextureFormatToMipSet(MipSet* pMipSet, const std::shared_ptr<ktxTexture2>& texture)
+{
+    const auto vkFormat = static_cast<VkFormat>(texture->vkFormat);
+
+    pMipSet->m_compressed = texture->isCompressed;
+    if (pMipSet->m_compressed)
+    {
+        pMipSet->m_nBlockHeight    = 4;
+        pMipSet->m_nBlockWidth     = 4;
+        pMipSet->m_nBlockDepth     = 1;
+        pMipSet->m_ChannelFormat   = CF_Compressed;
+        pMipSet->m_TextureDataType = TDT_ARGB;
+        pMipSet->m_format          = CMP_FORMAT_Unknown;
+
+        // Check supported compressed texture formats
+        switch (vkFormat)
+        {
+        case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_BC1;
+            return true;
+        case VK_FORMAT_BC2_UNORM_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_BC2;
+            return true;
+        case VK_FORMAT_BC3_UNORM_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_BC3;
+            return true;
+            // These are unsupported types used to map into cmp formats
+            // this is a trick for the CMP compressed DXT5 swizzle types
+            // switch (glInternalformat)
+            // {
+            // case COMPRESSED_FORMAT_DXT5_xGBR_TMP:
+            //     return CMP_FORMAT_DXT5_xGBR;
+            //     break;
+            // case COMPRESSED_FORMAT_DXT5_RxBG_TMP:
+            //     return CMP_FORMAT_DXT5_RxBG;
+            //     break;
+            // case COMPRESSED_FORMAT_DXT5_RBxG_TMP:
+            //     return CMP_FORMAT_DXT5_RBxG;
+            //     break;
+            // case COMPRESSED_FORMAT_DXT5_xRBG_TMP:
+            //     return CMP_FORMAT_DXT5_xRBG;
+            //     break;
+            // case COMPRESSED_FORMAT_DXT5_RGxB_TMP:
+            //     return CMP_FORMAT_DXT5_RGxB;
+            //     break;
+            // case COMPRESSED_FORMAT_DXT5_xGxR_TMP:
+            //     return CMP_FORMAT_DXT5_xGxR;
+            //     break;
+            // }
+        case VK_FORMAT_BC4_UNORM_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_BC4;
+            return true;
+        case VK_FORMAT_BC4_SNORM_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_BC4_S;
+            return true;
+            // if (glInternalformat == COMPRESSED_FORMAT_ATI1N_UNorm_TMP)
+            // {
+            //     return CMP_FORMAT_ATI1N;
+            // }
+        case VK_FORMAT_BC5_UNORM_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_BC5;
+            return true;
+            //if (glInternalformat == COMPRESSED_FORMAT_ATI2N_UNorm_TMP)
+            //{
+            //    return CMP_FORMAT_ATI2N;
+            //}
+            //else if (glInternalformat == COMPRESSED_FORMAT_ATI2N_XY_UNorm_TMP)
+            //{
+            //    return CMP_FORMAT_ATI2N_XY;
+            //}
+        case VK_FORMAT_BC5_SNORM_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_BC5_S;
+            return true;
+        case VK_FORMAT_BC6H_UFLOAT_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_BC6H;
+            return true;
+        case VK_FORMAT_BC6H_SFLOAT_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_BC6H_SF;
+            return true;
+        case VK_FORMAT_BC7_UNORM_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_BC7;
+            return true;
+        case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_ETC2_RGB;  // Skip ETC as ETC2 is backward comp
+            return true;
+        case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_ETC2_SRGB;
+            return true;
+        case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_ETC2_RGBA;
+            return true;
+        case VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_ETC2_RGBA1;
+            return true;
+        case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
+            pMipSet->m_format = CMP_FORMAT_ETC2_SRGBA;
+            return true;
+#if (OPTION_BUILD_ASTC == 1)
+        case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 4;
+            pMipSet->m_nBlockHeight = 4;
+            return true;
+        case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 5;
+            pMipSet->m_nBlockHeight = 4;
+            return true;
+        case VK_FORMAT_ASTC_5x5_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 5;
+            pMipSet->m_nBlockHeight = 5;
+            return true;
+        case VK_FORMAT_ASTC_6x5_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 6;
+            pMipSet->m_nBlockHeight = 5;
+            return true;
+        case VK_FORMAT_ASTC_6x6_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 6;
+            pMipSet->m_nBlockHeight = 6;
+            return true;
+        case VK_FORMAT_ASTC_8x5_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 8;
+            pMipSet->m_nBlockHeight = 5;
+            return true;
+        case VK_FORMAT_ASTC_8x6_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 8;
+            pMipSet->m_nBlockHeight = 6;
+            return true;
+        case VK_FORMAT_ASTC_8x8_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 8;
+            pMipSet->m_nBlockHeight = 8;
+            return true;
+        case VK_FORMAT_ASTC_10x5_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 10;
+            pMipSet->m_nBlockHeight = 5;
+            return true;
+        case VK_FORMAT_ASTC_10x6_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 10;
+            pMipSet->m_nBlockHeight = 6;
+            return true;
+        case VK_FORMAT_ASTC_10x8_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 10;
+            pMipSet->m_nBlockHeight = 8;
+            return true;
+        case VK_FORMAT_ASTC_10x10_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 10;
+            pMipSet->m_nBlockHeight = 10;
+            return true;
+        case VK_FORMAT_ASTC_12x10_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 12;
+            pMipSet->m_nBlockHeight = 10;
+            return true;
+        case VK_FORMAT_ASTC_12x12_UNORM_BLOCK:
+            pMipSet->m_format       = CMP_FORMAT_ASTC;
+            pMipSet->m_nBlockWidth  = 12;
+            pMipSet->m_nBlockHeight = 12;
+            return true;
+#endif
+
+        default:
+            pMipSet->m_format = CMP_FORMAT_Unknown;
+            return false;
+        }
+    }
+
+    // Handle supported uncompressed formats
+    switch (vkFormat)
+    {
+        // 8-bit unsigned and normalized int types
+    case VK_FORMAT_R8_UNORM:
+        pMipSet->m_format          = CMP_FORMAT_R_8;
+        pMipSet->m_ChannelFormat   = CF_8bit;
+        pMipSet->m_TextureDataType = TDT_R;
+        return true;
+
+    case VK_FORMAT_R8G8_UNORM:
+        pMipSet->m_format          = CMP_FORMAT_RG_8;
+        pMipSet->m_ChannelFormat   = CF_8bit;
+        pMipSet->m_TextureDataType = TDT_RG;
+        return true;
+
+        // The following 2 are grouped together and intentionally fall through
+    case VK_FORMAT_B8G8R8_UNORM:
+        pMipSet->m_swizzle = true;
+    case VK_FORMAT_R8G8B8_UNORM:
+        pMipSet->m_format          = CMP_FORMAT_RGB_888;
+        pMipSet->m_ChannelFormat   = CF_8bit;
+        pMipSet->m_TextureDataType = TDT_RGB;
+        return true;
+
+        // The following 2 are grouped together and intentionally fall through
+    case VK_FORMAT_B8G8R8A8_UNORM:  // BGRA8
+        pMipSet->m_swizzle = true;
+    case VK_FORMAT_R8G8B8A8_UNORM:  // RGBA8
+        // Shared properties must be at the end of a fallthrough group
+        pMipSet->m_format          = CMP_FORMAT_ARGB_8888;
+        pMipSet->m_TextureDataType = TDT_ARGB;
+        pMipSet->m_ChannelFormat   = CF_8bit;
+        return true;
+
+        // 16-bit unsigned and normalized int types
+    case VK_FORMAT_R16_UNORM:
+        pMipSet->m_format          = CMP_FORMAT_R_16;
+        pMipSet->m_ChannelFormat   = CF_16bit;
+        pMipSet->m_TextureDataType = TDT_R;
+        return true;
+
+    case VK_FORMAT_R16G16_UNORM:
+        pMipSet->m_format          = CMP_FORMAT_RG_16;
+        pMipSet->m_ChannelFormat   = CF_16bit;
+        pMipSet->m_TextureDataType = TDT_RG;
+        return true;
+
+    case VK_FORMAT_R16G16B16A16_UNORM:  // RGBA8
+        // Shared properties must be at the end of a fallthrough group
+        pMipSet->m_format          = CMP_FORMAT_ARGB_16;
+        pMipSet->m_TextureDataType = TDT_ARGB;
+        pMipSet->m_ChannelFormat   = CF_16bit;
+        return true;
+
+        // 16-bit float types
+    case VK_FORMAT_R16_SFLOAT:
+        pMipSet->m_format          = CMP_FORMAT_R_16F;
+        pMipSet->m_ChannelFormat   = CF_16bit;
+        pMipSet->m_TextureDataType = TDT_R;
+        return true;
+
+    case VK_FORMAT_R16G16_SFLOAT:
+        pMipSet->m_format          = CMP_FORMAT_RG_16F;
+        pMipSet->m_ChannelFormat   = CF_16bit;
+        pMipSet->m_TextureDataType = TDT_RG;
+        return true;
+
+    case VK_FORMAT_R16G16B16A16_SFLOAT:
+        pMipSet->m_format          = CMP_FORMAT_ARGB_16F;
+        pMipSet->m_TextureDataType = TDT_ARGB;
+        pMipSet->m_ChannelFormat   = CF_16bit;
+        return true;
+
+        // 32-bit float types
+    case VK_FORMAT_R32_SFLOAT:
+        pMipSet->m_format          = CMP_FORMAT_R_32F;
+        pMipSet->m_ChannelFormat   = CF_32bit;
+        pMipSet->m_TextureDataType = TDT_R;
+        return true;
+
+    case VK_FORMAT_R32G32_SFLOAT:
+        pMipSet->m_format          = CMP_FORMAT_RG_32F;
+        pMipSet->m_ChannelFormat   = CF_32bit;
+        pMipSet->m_TextureDataType = TDT_RG;
+        return true;
+
+    case VK_FORMAT_R32G32B32A32_SFLOAT:
+        pMipSet->m_format          = CMP_FORMAT_ARGB_32F;
+        pMipSet->m_TextureDataType = TDT_ARGB;
+        pMipSet->m_ChannelFormat   = CF_32bit;
+        return true;
+
+        // ARGB unsigned, normalized ints packed into 32 bits
+    case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
+        pMipSet->m_format          = CMP_FORMAT_ARGB_2101010;
+        pMipSet->m_ChannelFormat   = CF_2101010;
+        pMipSet->m_TextureDataType = TDT_ARGB;
+        return true;
+    default:
+        pMipSet->m_format = CMP_FORMAT_Unknown;
+    }
+
+    return false;
+}
+
+bool InitMipSetFromKtxTexture2(const std::shared_ptr<ktxTexture2>& texture, MipSet* pMipSet)
+{
+    // Search using VK formats first
+    if (!ApplyTextureFormatToMipSet(pMipSet, texture))
+    {
+        if (ktX2CMips != nullptr)
+        {
+            const auto vkFormat = static_cast<VkFormat>(texture->vkFormat);
+            ktX2CMips->PrintError(("Error(%d): KTX2 Plugin ID(%d) unsupported Vulkan format %x\n"), EL_Error, IDS_ERROR_UNSUPPORTED_TYPE, vkFormat);
+        }
+        return false;
+    }
+
+    if (texture->isCubemap)
+    {
+        pMipSet->m_TextureType = TT_CubeMap;
+    }
+    else if (texture->baseDepth > 1 && texture->numFaces == 1)
+    {
+        pMipSet->m_TextureType = TT_VolumeTexture;
+    }
+    else if (texture->baseDepth == 1 && texture->numFaces == 1)
+    {
+        pMipSet->m_TextureType = TT_2D;
+    }
+    else
+    {
+        if (ktX2CMips != nullptr)
+        {
+            ktX2CMips->PrintError(("Error(%d): KTX2 Plugin ID(%d) unsupported texture format\n"), EL_Error, IDS_ERROR_UNSUPPORTED_TYPE);
+        }
+        return false;
+    }
+
+    // Allocate MipSet header
+    ktX2CMips->AllocateMipSet(pMipSet,
+                              pMipSet->m_ChannelFormat,
+                              pMipSet->m_TextureDataType,
+                              pMipSet->m_TextureType,
+                              static_cast<int>(texture->baseWidth),
+                              static_cast<int>(texture->baseHeight),
+                              static_cast<int>(texture->numFaces));
+
+    pMipSet->m_nMipLevels = static_cast<int>(texture->numLevels);
+
+    return true;
+}
+}  // namespace
+
 int Plugin_KTX2::TC_PluginFileLoadTexture(const char* pszFilename, MipSet* pMipSet)
 {
-    ktxTexture2* texture2 = nullptr;
-    ktxTexture*  texture  = nullptr;
-
-    KTX_error_code loadStatus;
-    bool           isCompressed = false;
-    ktx_uint32_t   glInternalformat;
-    ktx_uint32_t   glType;
-    ktx_uint32_t   glFormat;
-
-    loadStatus = ktxTexture2_CreateFromNamedFile(pszFilename, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &texture2);
+    ktxTexture2*         texPtr     = nullptr;
+    const KTX_error_code loadStatus = ktxTexture2_CreateFromNamedFile(pszFilename, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &texPtr);
+    // Wrap the ktxTexture2* in a unique_ptr so that it's properly freed when it leaves scope.
+    auto texture = std::shared_ptr<ktxTexture2>(texPtr, ktxTexture2_Destroy);
     if (loadStatus != KTX_SUCCESS)
     {
-        if (KTX2_CMips)
+        if (ktX2CMips != nullptr)
         {
-            KTX2_CMips->PrintError(("Error(%x): KTX2 Plugin ID(%d) opening file = %s \n"), loadStatus, IDS_ERROR_FILE_OPEN, pszFilename);
+            ktX2CMips->PrintError(("Error(%x): KTX2 Plugin ID(%d) opening file = %s \n"), loadStatus, IDS_ERROR_FILE_OPEN, pszFilename);
         }
         return -1;
     }
 
-    // CMP_DFD* extended_format = (CMP_DFD *)texture2->pDfd;
-    glInternalformat = glGetInternalFormatFromVkFormat((VkFormat)texture2->vkFormat);
-    glType           = glGetTypeFromInternalFormat(glInternalformat);
-    glFormat         = glGetFormatFromInternalFormat(glInternalformat);
-
-    texture = ktxTexture(texture2);
-
-    isCompressed = texture->isCompressed;
-
-    int channelByteSize = 0;
-
-    try
+    if (!InitMipSetFromKtxTexture2(texture, pMipSet))
     {
-        if (isCompressed)
-        {
-            pMipSet->m_compressed      = true;
-            pMipSet->m_nBlockHeight    = 4;
-            pMipSet->m_nBlockWidth     = 4;
-            pMipSet->m_nBlockDepth     = 1;
-            pMipSet->m_ChannelFormat   = CF_Compressed;
-            pMipSet->m_TextureDataType = TDT_ARGB;
-            pMipSet->m_format          = CMP_FORMAT_Unknown;
-            channelByteSize            = 1;
+        return -1;
+    }
 
-            // Search using VL formats first
-            switch ((VkFormat)texture2->vkFormat)
+    int width  = pMipSet->m_nWidth;
+    int height = pMipSet->m_nHeight;
+
+    uint32_t       mipSetDataSize      = 0;
+    const uint32_t textureDataSize     = texture->dataSize;  // This is all data in cubemap levels and mip levels.
+    uint32_t       totalMipSetDataSize = 0;
+
+    int channelByteSize = 1;
+    int channelCount    = 0;
+    if (!pMipSet->m_compressed)
+    {
+        switch (pMipSet->m_TextureDataType)
+        {
+        case TDT_R:
+            channelCount = 1;
+            break;
+        case TDT_RG:
+            channelCount = 2;
+            break;
+        case TDT_RGB:
+            channelCount = 3;
+            break;
+        case TDT_ARGB:
+            channelCount = 4;
+            break;
+        default:
+            return 0;
+        }
+        switch (pMipSet->m_ChannelFormat)
+        {
+        case CF_8bit:
+            channelByteSize = 1;
+            break;
+        case CF_16bit:
+            channelByteSize = 2;
+            break;
+        case CF_32bit:
+            channelByteSize = 4;
+            break;
+        default:
+            channelByteSize = 0;
+        }
+    }
+
+    const uint32_t imageDataSize = ktxTexture_GetDataSize(
+        reinterpret_cast<ktxTexture*>(texture.get()));  // <- This will return the compressed size if the KTX2 file is using supercompression
+    uint8_t const* imageDataPtr = ktxTexture_GetData(reinterpret_cast<ktxTexture*>(texture.get()));
+
+    // Make data access slightly safer with this wrapper
+    auto getLayerDataPtr = [&imageDataPtr, &imageDataSize](const ktx_size_t offset) -> uint8_t const* {
+        if (offset >= imageDataSize)
+        {
+            return nullptr;
+        }
+        return imageDataPtr + offset;
+    };
+
+    for (uint32_t nMipLevel = 0; nMipLevel < texture->numLevels; nMipLevel++)
+    {
+        if ((width <= 1) || (height <= 1))
+        {
+            break;
+        }
+
+        width  = max(1, pMipSet->m_nWidth >> nMipLevel);
+        height = max(1, pMipSet->m_nHeight >> nMipLevel);
+
+        for (uint32_t face = 0; face < texture->numFaces; ++face)
+        {
+            // Determine buffer size and set Mip Set Levels
+            MipLevel* pMipLevel = ktX2CMips->GetMipLevel(pMipSet, static_cast<int>(nMipLevel), static_cast<int>(face));
+            // int       channelCount = 0;
+
+            if (pMipSet->m_compressed)
             {
-            case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_BC1;
-                break;
-            case VK_FORMAT_BC2_UNORM_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_BC2;
-                break;
-            case VK_FORMAT_BC3_UNORM_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_BC3;
-                // These are unsupport types used to map into cmp formats
-                // this is a trick for the CMP compressed DXT5 swizzle types
-                // switch (glInternalformat)
-                // {
-                // case COMPRESSED_FORMAT_DXT5_xGBR_TMP:
-                //     pMipSet->m_format = CMP_FORMAT_DXT5_xGBR;
-                //     break;
-                // case COMPRESSED_FORMAT_DXT5_RxBG_TMP:
-                //     pMipSet->m_format = CMP_FORMAT_DXT5_RxBG;
-                //     break;
-                // case COMPRESSED_FORMAT_DXT5_RBxG_TMP:
-                //     pMipSet->m_format = CMP_FORMAT_DXT5_RBxG;
-                //     break;
-                // case COMPRESSED_FORMAT_DXT5_xRBG_TMP:
-                //     pMipSet->m_format = CMP_FORMAT_DXT5_xRBG;
-                //     break;
-                // case COMPRESSED_FORMAT_DXT5_RGxB_TMP:
-                //     pMipSet->m_format = CMP_FORMAT_DXT5_RGxB;
-                //     break;
-                // case COMPRESSED_FORMAT_DXT5_xGxR_TMP:
-                //     pMipSet->m_format = CMP_FORMAT_DXT5_xGxR;
-                //     break;
-                // }
-                break;
-            case VK_FORMAT_BC4_UNORM_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_BC4;
-                break;
-            case VK_FORMAT_BC4_SNORM_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_BC4_S;
-                // if (glInternalformat == COMPRESSED_FORMAT_ATI1N_UNorm_TMP)
-                // {
-                //     pMipSet->m_format = CMP_FORMAT_ATI1N;
-                // }
-                break;
-            case VK_FORMAT_BC5_UNORM_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_BC5;
-                //if (glInternalformat == COMPRESSED_FORMAT_ATI2N_UNorm_TMP)
-                //{
-                //    pMipSet->m_format = CMP_FORMAT_ATI2N;
-                //}
-                //else if (glInternalformat == COMPRESSED_FORMAT_ATI2N_XY_UNorm_TMP)
-                //{
-                //    pMipSet->m_format = CMP_FORMAT_ATI2N_XY;
-                //}
-                break;
-            case VK_FORMAT_BC5_SNORM_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_BC5_S;
-                break;
-            case VK_FORMAT_BC6H_UFLOAT_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_BC6H;
-                break;
-            case VK_FORMAT_BC6H_SFLOAT_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_BC6H_SF;
-                break;
-            case VK_FORMAT_BC7_UNORM_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_BC7;
-                break;
-            case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_ETC2_RGB;  // Skip ETC as ETC2 is backward comp
-                break;
-            case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_ETC2_SRGB;
-                break;
-            case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_ETC2_RGBA;
-                break;
-            case VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_ETC2_RGBA1;
-                break;
-            case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
-                pMipSet->m_format = CMP_FORMAT_ETC2_SRGBA;
-                break;
-#if (OPTION_BUILD_ASTC == 1)
-            case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 4;
-                pMipSet->m_nBlockHeight = 4;
-                break;
-            case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 5;
-                pMipSet->m_nBlockHeight = 4;
-                break;
-            case VK_FORMAT_ASTC_5x5_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 5;
-                pMipSet->m_nBlockHeight = 5;
-                break;
-            case VK_FORMAT_ASTC_6x5_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 6;
-                pMipSet->m_nBlockHeight = 5;
-                break;
-            case VK_FORMAT_ASTC_6x6_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 6;
-                pMipSet->m_nBlockHeight = 6;
-                break;
-            case VK_FORMAT_ASTC_8x5_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 8;
-                pMipSet->m_nBlockHeight = 5;
-                break;
-            case VK_FORMAT_ASTC_8x6_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 8;
-                pMipSet->m_nBlockHeight = 6;
-                break;
-            case VK_FORMAT_ASTC_8x8_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 8;
-                pMipSet->m_nBlockHeight = 8;
-                break;
-            case VK_FORMAT_ASTC_10x5_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 10;
-                pMipSet->m_nBlockHeight = 5;
-                break;
-            case VK_FORMAT_ASTC_10x6_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 10;
-                pMipSet->m_nBlockHeight = 6;
-                break;
-            case VK_FORMAT_ASTC_10x8_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 10;
-                pMipSet->m_nBlockHeight = 8;
-                break;
-            case VK_FORMAT_ASTC_10x10_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 10;
-                pMipSet->m_nBlockHeight = 10;
-                break;
-            case VK_FORMAT_ASTC_12x10_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 12;
-                pMipSet->m_nBlockHeight = 10;
-                break;
-            case VK_FORMAT_ASTC_12x12_UNORM_BLOCK:
-                pMipSet->m_format       = CMP_FORMAT_ASTC;
-                pMipSet->m_nBlockWidth  = 12;
-                pMipSet->m_nBlockHeight = 12;
-                break;
-#endif
-            }
-        }
-        else
-        {
-            pMipSet->m_compressed = false;
+                // calculate the compressed miplevel size to allocate
+                CMP_Texture destGPUMipTexture;
+                destGPUMipTexture.dwSize       = sizeof(CMP_Texture);
+                destGPUMipTexture.dwPitch      = 0;
+                destGPUMipTexture.format       = pMipSet->m_format;
+                destGPUMipTexture.dwWidth      = width;
+                destGPUMipTexture.dwHeight     = height;
+                destGPUMipTexture.nBlockWidth  = pMipSet->m_nBlockWidth;
+                destGPUMipTexture.nBlockHeight = pMipSet->m_nBlockHeight;
+                mipSetDataSize                 = CMP_CalculateBufferSize(&destGPUMipTexture);
 
-            switch (glType)
-            {
-            case GL_UNSIGNED_BYTE:
-                pMipSet->m_ChannelFormat = CF_8bit;
-                switch (glFormat)
-                {
-                case GL_RED:
-                    pMipSet->m_format          = CMP_FORMAT_R_8;
-                    pMipSet->m_TextureDataType = TDT_R;
-                    break;
-                case GL_RG:
-                    pMipSet->m_format          = CMP_FORMAT_RG_8;
-                    pMipSet->m_TextureDataType = TDT_RG;
-                    break;
-                case GL_RGB:
-                    pMipSet->m_format          = CMP_FORMAT_RGB_888;
-                    pMipSet->m_TextureDataType = TDT_XRGB;
-                    break;
-                case GL_RGBA:
-                case GL_RGBA8:
-                    pMipSet->m_format          = CMP_FORMAT_ARGB_8888;
-                    pMipSet->m_TextureDataType = TDT_ARGB;
-                    break;
-                case GL_BGR:
-                    pMipSet->m_swizzle         = true;
-                    pMipSet->m_format          = CMP_FORMAT_RGB_888;
-                    pMipSet->m_TextureDataType = TDT_XRGB;
-                    break;
-                case GL_BGRA:
-                    pMipSet->m_swizzle         = true;
-                    pMipSet->m_format          = CMP_FORMAT_ARGB_8888;
-                    pMipSet->m_TextureDataType = TDT_ARGB;
-                    break;
-                }
-                break;
-            case GL_UNSIGNED_SHORT:
-                pMipSet->m_ChannelFormat = CF_16bit;
-                switch (glFormat)
-                {
-                case GL_RED:
-                    pMipSet->m_format          = CMP_FORMAT_R_16;
-                    pMipSet->m_TextureDataType = TDT_R;
-                    break;
-                case GL_RG:
-                    pMipSet->m_format          = CMP_FORMAT_RG_16;
-                    pMipSet->m_TextureDataType = TDT_RG;
-                    break;
-                case GL_RGBA:
-                    pMipSet->m_format          = CMP_FORMAT_ARGB_16;
-                    pMipSet->m_TextureDataType = TDT_ARGB;
-                    break;
-                case GL_BGRA:
-                    pMipSet->m_swizzle         = true;
-                    pMipSet->m_format          = CMP_FORMAT_ARGB_16;
-                    pMipSet->m_TextureDataType = TDT_ARGB;
-                    break;
-                }
-                break;
-            case GL_HALF_FLOAT:
-                pMipSet->m_ChannelFormat = CF_Float16;
-                switch (glFormat)
-                {
-                case GL_RED:
-                    pMipSet->m_format          = CMP_FORMAT_R_16F;
-                    pMipSet->m_TextureDataType = TDT_R;
-                    break;
-                case GL_RG:
-                    pMipSet->m_format          = CMP_FORMAT_RG_16F;
-                    pMipSet->m_TextureDataType = TDT_RG;
-                    break;
-                case GL_RGBA:
-                    pMipSet->m_format          = CMP_FORMAT_RGBA_16F;  // CMP_FORMAT_ARGB_16F;
-                    pMipSet->m_TextureDataType = TDT_ARGB;
-                    break;
-                case GL_BGRA:
-                    pMipSet->m_swizzle         = true;
-                    pMipSet->m_format          = CMP_FORMAT_RGBA_16F;  // CMP_FORMAT_ARGB_16F;
-                    pMipSet->m_TextureDataType = TDT_ARGB;
-                    break;
-                }
-                break;
-            case GL_UNSIGNED_INT_2_10_10_10_REV:
-                pMipSet->m_format          = CMP_FORMAT_ARGB_2101010;
-                pMipSet->m_TextureDataType = TDT_ARGB;
-                pMipSet->m_ChannelFormat   = CF_2101010;
-                break;
-            case GL_FLOAT:
-                pMipSet->m_ChannelFormat = CF_Float32;
-                switch (glFormat)
-                {
-                case GL_RED:
-                    pMipSet->m_format          = CMP_FORMAT_R_32F;
-                    pMipSet->m_TextureDataType = TDT_R;
-                    break;
-                case GL_RG:
-                    pMipSet->m_format          = CMP_FORMAT_RG_32F;
-                    pMipSet->m_TextureDataType = TDT_RG;
-                    break;
-                case GL_RGBA:
-                    pMipSet->m_format          = CMP_FORMAT_ARGB_32F;
-                    pMipSet->m_TextureDataType = TDT_ARGB;
-                    break;
-                case GL_BGRA:
-                    pMipSet->m_swizzle         = true;
-                    pMipSet->m_format          = CMP_FORMAT_ARGB_32F;
-                    pMipSet->m_TextureDataType = TDT_ARGB;
-                    break;
-                }
-                break;
-                break;
-            default:
-                if (KTX2_CMips)
-                {
-                    KTX2_CMips->PrintError(("Error(%d): KTX2 Plugin ID(%d) unsupported GL format %x\n"), EL_Error, IDS_ERROR_UNSUPPORTED_TYPE, glFormat);
-                }
-                return -1;
-            }
-        }
-
-        if (texture->isCubemap)
-        {
-            pMipSet->m_TextureType = TT_CubeMap;
-        }
-        else if (texture->baseDepth > 1 && texture->numFaces == 1)
-        {
-            pMipSet->m_TextureType = TT_VolumeTexture;
-        }
-        else if (texture->baseDepth == 1 && texture->numFaces == 1)
-        {
-            pMipSet->m_TextureType = TT_2D;
-        }
-        else
-        {
-            if (KTX2_CMips)
-            {
-                KTX2_CMips->PrintError(("Error(%d): KTX2 Plugin ID(%d) unsupported texture format\n"), EL_Error, IDS_ERROR_UNSUPPORTED_TYPE);
-            }
-            return -1;
-        }
-
-        pMipSet->m_nMipLevels = texture->numLevels;
-
-        // Allocate MipSet header
-        KTX2_CMips->AllocateMipSet(
-            pMipSet, pMipSet->m_ChannelFormat, pMipSet->m_TextureDataType, pMipSet->m_TextureType, texture->baseWidth, texture->baseHeight, texture->numFaces);
-
-        int w = pMipSet->m_nWidth;
-        int h = pMipSet->m_nHeight;
-
-        unsigned int totalByteRead = 0;
-
-        unsigned int faceSize            = 0;
-        unsigned int MipSetdataSize      = 0;
-        unsigned int numArrayElement     = texture->numLayers;
-        unsigned int TexturedataSize     = texture->dataSize;  // This is all data in cubemap levels and mip levels.
-        unsigned int TotalMipSetdataSize = 0;
-
-        for (uint32_t nMipLevel = 0; nMipLevel < texture->numLevels; nMipLevel++)
-        {
-            if ((w <= 1) || (h <= 1))
-            {
-                break;
+                ktX2CMips->AllocateCompressedMipLevelData(pMipLevel, width, height, mipSetDataSize);
+                totalMipSetDataSize += pMipLevel->m_dwLinearSize;
             }
             else
             {
-                w = max(1, pMipSet->m_nWidth >> nMipLevel);
-                h = max(1, pMipSet->m_nHeight >> nMipLevel);
+                ktX2CMips->AllocateMipLevelData(pMipLevel, width, height, pMipSet->m_ChannelFormat, pMipSet->m_TextureDataType);
+                mipSetDataSize = pMipLevel->m_dwLinearSize;
             }
 
-            for (uint32_t face = 0; face < texture->numFaces; ++face)
+            CMP_BYTE* pData = pMipLevel->m_pbData;
+
+            if (pData == nullptr)
             {
-                // Determine buffer size and set Mip Set Levels
-                MipLevel* pMipLevel    = KTX2_CMips->GetMipLevel(pMipSet, nMipLevel, face);
-                int       channelCount = 0;
-
-                if (pMipSet->m_compressed)
+                if (ktX2CMips != nullptr)
                 {
-                    // calculate the compressed miplevel size to allocate
-                    CMP_Texture destGPUMipTexture;
-                    destGPUMipTexture.dwSize       = sizeof(CMP_Texture);
-                    destGPUMipTexture.dwPitch      = 0;
-                    destGPUMipTexture.format       = pMipSet->m_format;
-                    destGPUMipTexture.dwWidth      = w;
-                    destGPUMipTexture.dwHeight     = h;
-                    destGPUMipTexture.nBlockWidth  = pMipSet->m_nBlockWidth;
-                    destGPUMipTexture.nBlockHeight = pMipSet->m_nBlockHeight;
-                    MipSetdataSize                 = CMP_CalculateBufferSize(&destGPUMipTexture);
-                    KTX2_CMips->AllocateCompressedMipLevelData(pMipLevel, w, h, MipSetdataSize);
-                    TotalMipSetdataSize += pMipLevel->m_dwLinearSize;
+                    ktX2CMips->PrintError(("Error(%d): KTX2 Plugin ID(%d) Read image data failed, Out of Memory. Vulkan format %x\n"),
+                                          EL_Error,
+                                          IDS_ERROR_UNSUPPORTED_TYPE,
+                                          texture->vkFormat);
+                }
+                return -1;
+            }
+
+            //
+            // Read image data into temporary buffer
+            //
+
+            ktx_size_t offset     = 0;
+            const auto dataStatus = ktxTexture2_GetImageOffset(texture.get(), nMipLevel, 0, face, &offset);
+            if (dataStatus != KTX_SUCCESS)
+            {
+                if (ktX2CMips != nullptr)
+                {
+                    ktX2CMips->PrintError("Error(%d): KTX2 Plugin Read image data offset at %d failed\n", dataStatus, offset);
+                }
+                return -1;
+            }
+
+            auto const* imageLayerData = getLayerDataPtr(offset);
+            if (imageLayerData == nullptr)
+            {
+                if (ktX2CMips != nullptr)
+                {
+                    ktX2CMips->PrintError("Error: KTX2 Plugin Read image data at offset %d is null\n", offset);
+                }
+                return -1;
+            }
+
+            if (!pMipSet->m_compressed)
+            {
+                const size_t         readSize = static_cast<const size_t>(channelByteSize) * channelCount * width * height;
+                std::vector<uint8_t> pixelData(readSize);
+
+                memcpy(pixelData.data(), imageLayerData, readSize);
+
+                const int pixelSize       = channelCount * channelByteSize;
+                int       targetPixelSize = channelCount * channelByteSize;
+                if (channelCount == 3)
+                {
+                    // XRGB conversion.
+                    targetPixelSize = 4 * channelByteSize;
+                }
+
+                int posY = 0;
+                for (posY = 0; posY < height; posY++)
+                {
+                    int posX = 0;
+                    for (posX = 0; posX < width; posX++)
+                    {
+                        memcpy(&pData[(targetPixelSize * posX) + (posY * targetPixelSize * width)],
+                               &pixelData[(pixelSize * posX) + (posY * pixelSize * width)],
+                               pixelSize);
+                    }
+                }
+            }
+            else
+            {
+                if (totalMipSetDataSize <= textureDataSize)
+                {
+                    memcpy(pData, imageLayerData, mipSetDataSize);
                 }
                 else
                 {
-                    channelByteSize = 0;
-                    switch (glType)
+                    if (ktX2CMips != nullptr)
                     {
-                    case GL_UNSIGNED_BYTE:
-                        channelByteSize = 1;
-                        break;
-                    case GL_UNSIGNED_SHORT:
-                        channelByteSize = 2;
-                        break;
-                    case GL_HALF_FLOAT:
-                        channelByteSize = 2;
-                        break;
-                    case GL_FLOAT:
-                        channelByteSize = 4;
-                        break;
-                    default:
-                        return -1;
-                    }
-
-                    switch (glFormat)
-                    {
-                    case GL_RED:
-                        channelCount = 1;
-                        break;
-                    case GL_RG:
-                        channelCount = 2;
-                        break;
-                    case GL_RGB:
-                        channelCount = 3;
-                        break;
-                    case GL_BGR:
-                        channelCount = 3;
-                        break;
-                    case GL_RGBA:
-                        channelCount = 4;
-                        break;
-                    case GL_BGRA:
-                        channelCount = 4;
-                        break;
-                    default:
-                        return -1;
-                    }
-
-                    KTX2_CMips->AllocateMipLevelData(pMipLevel, w, h, pMipSet->m_ChannelFormat, pMipSet->m_TextureDataType);
-                    MipSetdataSize = pMipLevel->m_dwLinearSize;
-                }
-
-                CMP_BYTE* pData = (CMP_BYTE*)(pMipLevel->m_pbData);
-
-                if (!pData)
-                {
-                    if (KTX2_CMips)
-                    {
-                        KTX2_CMips->PrintError(("Error(%d): KTX2 Plugin ID(%d) Read image data failed, Out of Memory. Format %x\n"),
-                                               EL_Error,
-                                               IDS_ERROR_UNSUPPORTED_TYPE,
-                                               glFormat);
+                        ktX2CMips->PrintError("Error: KTX2 Plugin MipSetdataSize error (%d, %d)\n", textureDataSize, mipSetDataSize);
                     }
                     return -1;
-                }
-
-                //
-                // Read image data into temporary buffer
-                //
-
-                ktx_size_t     offset     = 0;
-                KTX_error_code dataStatus = ktxTexture_GetImageOffset(ktxTexture(texture), nMipLevel, 0, face, &offset);
-
-                if (dataStatus != KTX_SUCCESS)
-                {
-                    if (KTX2_CMips)
-                    {
-                        KTX2_CMips->PrintError("Error(%d): KTX2 Plugin Read image data offset at %d failed\n", dataStatus, offset);
-                    }
-                    return -1;
-                }
-
-                uint8_t* imageData = ktxTexture_GetData(ktxTexture(texture)) + offset;
-
-                if (imageData == nullptr)
-                {
-                    if (KTX2_CMips)
-                    {
-                        KTX2_CMips->PrintError("Error: KTX2 Plugin Read image data at offset %d is null\n", offset);
-                    }
-                    return -1;
-                }
-
-                if (!pMipSet->m_compressed)
-                {
-                    size_t               readSize = channelByteSize * channelCount * w * h;
-                    std::vector<uint8_t> pixelData(readSize);
-
-                    memcpy(&pixelData[0], imageData, readSize);
-
-                    int pixelSize       = channelCount * channelByteSize;
-                    int targetPixelSize = channelCount * channelByteSize;
-                    if (channelCount == 3)
-                    {
-                        // XRGB conversion.
-                        targetPixelSize = 4 * channelByteSize;
-                    }
-
-                    int py = 0;
-                    for (py = 0; py < h; py++)
-                    {
-                        int px = 0;
-                        for (px = 0; px < w; px++)
-                        {
-                            memcpy(&pData[targetPixelSize * px + py * targetPixelSize * w], &pixelData[pixelSize * px + py * pixelSize * w], pixelSize);
-                        }
-                    }
-                }
-                else
-                {
-                    if (TotalMipSetdataSize <= TexturedataSize)
-                        memcpy(pData, imageData, MipSetdataSize);
-                    else
-                    {
-                        if (KTX2_CMips)
-                        {
-                            KTX2_CMips->PrintError("Error: KTX2 Plugin MipSetdataSize error (%d, %d)\n", TexturedataSize, MipSetdataSize);
-                        }
-                        return -1;
-                    }
                 }
             }
         }
     }
-    catch (...)
-    {
-        if (KTX2_CMips)
-        {
-            KTX2_CMips->PrintError("Error KTX2 Plugin Exception: \n");
-        }
-        return -1;
-    }
-
     return 0;
 }
 
@@ -652,15 +657,15 @@ int Plugin_KTX2::TC_PluginFileSaveTexture(const char* pszFilename, MipSet* pMipS
 
     if (pMipSet->m_pMipLevelTable == NULL)
     {
-        if (KTX2_CMips)
-            KTX2_CMips->PrintError(("Error(%d): KTX2 Plugin ID(%d) saving file = %s "), EL_Error, IDS_ERROR_ALLOCATEMIPSET, pszFilename);
+        if (ktX2CMips)
+            ktX2CMips->PrintError(("Error(%d): KTX2 Plugin ID(%d) saving file = %s "), EL_Error, IDS_ERROR_ALLOCATEMIPSET, pszFilename);
         return -1;
     }
 
-    if (KTX2_CMips->GetMipLevel(pMipSet, 0) == NULL)
+    if (ktX2CMips->GetMipLevel(pMipSet, 0) == NULL)
     {
-        if (KTX2_CMips)
-            KTX2_CMips->PrintError(("Error(%d): KTX2 Plugin ID(%d) saving file = %s "), EL_Error, IDS_ERROR_ALLOCATEMIPSET, pszFilename);
+        if (ktX2CMips)
+            ktX2CMips->PrintError(("Error(%d): KTX2 Plugin ID(%d) saving file = %s "), EL_Error, IDS_ERROR_ALLOCATEMIPSET, pszFilename);
         return -1;
     }
 
@@ -1028,8 +1033,8 @@ int Plugin_KTX2::TC_PluginFileSaveTexture(const char* pszFilename, MipSet* pMipS
 
     if (textureCreateInfo.vkFormat == VK_FORMAT_UNDEFINED)
     {
-        if (KTX2_CMips)
-            KTX2_CMips->PrintError("Error: KTX2 plugin. Destination format is not supported.\n");
+        if (ktX2CMips)
+            ktX2CMips->PrintError("Error: KTX2 plugin. Destination format is not supported.\n");
         return -1;
     }
 
@@ -1043,15 +1048,15 @@ int Plugin_KTX2::TC_PluginFileSaveTexture(const char* pszFilename, MipSet* pMipS
 
     if (createStatus != KTX_SUCCESS)
     {
-        if (KTX2_CMips)
+        if (ktX2CMips)
         {
             switch (createStatus)
             {
             case KTX_UNSUPPORTED_TEXTURE_TYPE:
-                KTX2_CMips->PrintError("Error(KTX2 UNSUPPORTED TEXTURE TYPE) saving file = %s \n", pszFilename);
+                ktX2CMips->PrintError("Error(KTX2 UNSUPPORTED TEXTURE TYPE) saving file = %s \n", pszFilename);
                 break;
             default:
-                KTX2_CMips->PrintError("Error(%d): Create status KTX2 Plugin on saving file = %s \n", createStatus, pszFilename);
+                ktX2CMips->PrintError("Error(%d): Create status KTX2 Plugin on saving file = %s \n", createStatus, pszFilename);
             }
         }
         return -1;
@@ -1062,20 +1067,20 @@ int Plugin_KTX2::TC_PluginFileSaveTexture(const char* pszFilename, MipSet* pMipS
     {
         for (int nMipLevel = 0; nMipLevel < pMipSet->m_nMipLevels; nMipLevel++)
         {
-            MipLevel* pMipLevel = KTX2_CMips->GetMipLevel(pMipSet, nMipLevel, nSlice);
+            MipLevel* pMipLevel = ktX2CMips->GetMipLevel(pMipSet, nMipLevel, nSlice);
 
             if (pMipLevel)
             {
                 KTX_error_code setMemory = ktxTexture_SetImageFromMemory(texture, nMipLevel, 0, nSlice, pMipLevel->m_pbData, pMipLevel->m_dwLinearSize);
                 if (setMemory != KTX_SUCCESS)
                 {
-                    KTX2_CMips->PrintError("Error(%d):SetImageFromMemory KTX2 Plugin on saving file = %s \n", setMemory, pszFilename);
+                    ktX2CMips->PrintError("Error(%d):SetImageFromMemory KTX2 Plugin on saving file = %s \n", setMemory, pszFilename);
                     return -1;
                 }
             }
             else
             {
-                KTX2_CMips->PrintError("Error:GetMipLevel (%d,%d) KTX2 Plugin on saving file = %s \n", nMipLevel, nSlice, pszFilename);
+                ktX2CMips->PrintError("Error:GetMipLevel (%d,%d) KTX2 Plugin on saving file = %s \n", nMipLevel, nSlice, pszFilename);
                 return -1;
             }
         }
@@ -1087,7 +1092,7 @@ int Plugin_KTX2::TC_PluginFileSaveTexture(const char* pszFilename, MipSet* pMipS
         KTX_error_code basisStatus  = ktxTexture2_CompressBasis(texture2, *basisQuality);
         if (basisStatus != KTX_SUCCESS)
         {
-            KTX2_CMips->PrintError("Error(%d): Basis status KTX2 Plugin on saving file = %s \n", basisStatus, pszFilename);
+            ktX2CMips->PrintError("Error(%d): Basis status KTX2 Plugin on saving file = %s \n", basisStatus, pszFilename);
             return -1;
         }
     }
@@ -1099,7 +1104,7 @@ int Plugin_KTX2::TC_PluginFileSaveTexture(const char* pszFilename, MipSet* pMipS
     KTX_error_code save = ktxTexture_WriteToNamedFile(texture, pszFilename);
     if (save != KTX_SUCCESS)
     {
-        KTX2_CMips->PrintError("Error(%d): WriteToNamedFile KTX2 Plugin on saving file = %s \n", save, pszFilename);
+        ktX2CMips->PrintError("Error(%d): WriteToNamedFile KTX2 Plugin on saving file = %s \n", save, pszFilename);
         return -1;
     }
 

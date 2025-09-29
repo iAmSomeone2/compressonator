@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.29)
 # -------------------------------------------------------------------------
 # Vulkan
 
-if (NOT OPTION_CMP_VULKAN)
-    message("OPTION_CMP_VULKAN=OFF")
-    return()
-endif()
+# Vulkan is now required for the GUI
+#if (NOT OPTION_CMP_VULKAN)
+#    message("OPTION_CMP_VULKAN=OFF")
+#    return()
+#endif()
 
 add_library(ExtVulkan INTERFACE)
 

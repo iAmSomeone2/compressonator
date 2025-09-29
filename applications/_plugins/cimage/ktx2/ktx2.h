@@ -25,9 +25,9 @@
 #define _PLUGIN_IMAGE_KTX2_H
 
 #include "cmp_plugininterface.h"
-#include "stdint.h"
-#include "ktx.h"
-#include "ktxint.h"
+#include <cstdint>
+#include <ktx.h>
+#include <ktxint.h>
 
 #ifdef _WIN32
 // {D755E017-0485-466E-83AF-58BF5DDA8F05}
