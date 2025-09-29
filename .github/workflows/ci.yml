@@ -38,7 +38,7 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with: 
-            name: Compressonator_${{ runner.arch }}_Linux_${{ github.ref_name }}_Build
+            name: Compressonator_${{ runner.arch }}_${{ runner.os }}_${{ github.ref_name }}_Build
             path: ${{github.workspace}}/cmake-build-release/bin/
   
 #   build_compressonator_framework:
