@@ -9,29 +9,13 @@ on:
 jobs:
   build_compressonator_apps:
     runs-on: ubuntu-latest
-    container: fedora:42
+    container: ghcr.io/iamsomeone2/compressonator-builder:fedora42
 
     steps:
       - uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 1
-
-      - name: Cache DNF packages
-        uses: actions/cache@v4
-        with:
-          key: ${{ runner.os }}-${{ runner.arch }}
-          path: /var/cache/libdnf5/
-
-      - name: Install Build deps
-        shell: bash
-        run: dnf install -y --setopt=install_weak_deps=False \
-          gcc-c++ ninja-build cmake git libicu-devel \
-          vulkan-tools vulkan-headers glslang-devel \
-          mesa-libGL-devel mesa-libGLU-devel mesa-libEGL-devel mesa-libOpenCL-devel \
-          qt5-qtbase-devel qt5-qtdeclarative-devel qt5-qtwebengine-devel \
-          glew-devel glfw-devel glm-devel opencv-devel openexr-devel \
-          libpng-devel wayland-devel
 
       # TODO: Add ccache support
       
@@ -49,12 +33,12 @@ jobs:
         working-directory: ${{github.workspace}}/cmake-build-release
         shell: bash      
         # Execute the build.  You can specify a specific target with "--target <NAME>"
-        run: cmake --build .
+        run: ninja
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with: 
-            name: CompressonatorCLI_64_Linux_${{ github.ref_name }}_Build
+            name: Compressonator_${{ runner.arch }}_Linux_${{ github.ref_name }}_Build
             path: ${{github.workspace}}/cmake-build-release/bin/
   
 #   build_compressonator_framework:

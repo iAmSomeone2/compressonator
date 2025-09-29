@@ -1,5 +1,8 @@
 FROM fedora:42
-LABEL authors="Brenden Davidson <brenden@bdavidson.dev>"
+LABEL org.opencontainers.image.authors="Brenden Davidson <brenden@bdavidson.dev>"
+LABEL org.opencontainers.image.source="https://github.com/iAmSomeone2/compressonator"
+LABEL org.opencontainers.image.description="Fedora 42-based image containing build dependencies for Compressonator"
+LABEL org.opencontainers.image.licenses="MIT"
 
 # Upgrade installed pkgs and install all build dependencies
 RUN dnf upgrade -y && \
