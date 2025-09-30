@@ -46,6 +46,9 @@ set(PATH_SUFFIXES lib)
 # ====================================================
 find_package(Threads REQUIRED QUIET)
 
+include(${CMAKE_CURRENT_LIST_DIR}/zlib/CMakeLists.txt)
+list(APPEND FETCH_PKGS ZLIB)
+
 # ====================================================
 #                    ImGui
 # ====================================================
@@ -132,6 +135,7 @@ endif()
 if (OPTION_BUILD_EXR)
     message(STATUS "++++++++++++++++++ O P E N E X R" )
     include(${CMAKE_CURRENT_LIST_DIR}/openexr/CMakeLists.txt)
+    list(APPEND FETCH_PKGS OpenEXR)
 endif()
 
 FetchContent_MakeAvailable("${FETCH_PKGS}")

@@ -65,7 +65,10 @@ add_library(CMP_Common STATIC
     ${PLUGIN_COMMON_SRC_QT}
     ${PLUGIN_COMMON_H}
     ${PLUGIN_COMMON_INC_QT}
-    )
+)
+
+find_package(OpenCV REQUIRED)
+find_package(OpenEXR REQUIRED)
 
 target_include_directories(CMP_Common PRIVATE
   .
@@ -83,8 +86,7 @@ target_include_directories(CMP_Common PRIVATE
   ${PROJECT_SOURCE_DIR}/applications/_libs/cmp_math
   ${PROJECT_SOURCE_DIR}/applications/_libs/cmp_meshoptimizer
   ${PROJECT_SOURCE_DIR}/external/stb/
-  ${PROJECT_SOURCE_DIR}/../common/lib/ext/rapidxml
-  ${PROJECT_SOURCE_DIR}/../common/lib/ext/glm
+        ${glm_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${OpenEXR_INCLUDE_DIRS}
 )

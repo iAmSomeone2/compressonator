@@ -7,7 +7,8 @@ on:
       - linux-build-fixes # Temporary branch for Linux build fixes
 
 jobs:
-  build_compressonator_apps:
+  build_compressonator:
+    name: "Build Compressonator CLI and Libraries"
     runs-on: ubuntu-latest
     container: ghcr.io/iamsomeone2/compressonator-builder:fedora42
 
@@ -27,19 +28,20 @@ jobs:
         # access regardless of the host operating system
         shell: bash
         working-directory: ${{github.workspace}}/cmake-build-release
-        run: cmake -S $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DOPTION_ENABLE_ALL_APPS=OFF -DOPTION_BUILD_APPS_CMP_CLI=ON -DOPTION_BUILD_APPS_CMP_GUI=ON -B .
+        run: cmake -S $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DOPTION_ENABLE_ALL_APPS=OFF -DOPTION_BUILD_APPS_CMP_CLI=ON -B .
 
       - name: Build
         working-directory: ${{github.workspace}}/cmake-build-release
-        shell: bash      
-        # Execute the build.  You can specify a specific target with "--target <NAME>"
         run: ninja
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with: 
-            name: Compressonator_${{ runner.arch }}_${{ runner.os }}_${{ github.ref_name }}_Build
-            path: ${{github.workspace}}/cmake-build-release/bin/
+            name: Compressonator_${{ runner.os }}-${{ runner.arch }}_${{ github.ref_name }}_Build
+            path: |
+              ${{github.workspace}}/cmake-build-release/bin/
+              ${{github.workspace}}/cmake-build-release/lib/
+              !${{github.workspace}}/cmake-build-release/lib/libgtest.a
   
 #   build_compressonator_framework:
 #     runs-on: windows-latest

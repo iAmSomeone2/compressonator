@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.24)
 
 if (NOT CMP_VERSION_MAJOR)
     set(CMP_VERSION_MAJOR 4)

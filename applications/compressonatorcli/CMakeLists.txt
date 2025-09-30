@@ -1,20 +1,25 @@
 cmake_minimum_required(VERSION 3.24)
 
+add_executable(CompressonatorCLI-bin)
+
+set(ZLIB_USE_STATIC_LIBS ON)
+FetchContent_MakeAvailable(ZLIB)
+find_package(ZLIB REQUIRED)
+
+find_package(OpenCV REQUIRED)
+
+#link_directories(${ZLIB_LIBRARIES} ${OpenCV_LIB_DIRS})
+
+if (OPTION_BUILD_EXR)
+    find_package(OpenEXR 3.2 REQUIRED)
+#    link_directories(${OpenEXR_LIBRARIES})
+endif()
+
 if(CMP_HOST_WINDOWS)
     # this must be before add_executable
     link_directories(
-        ${PROJECT_EXTERNAL_LIBDIR}/zlib/zlib-1.2.10/VS2015/x64/lib
-        ${PROJECT_EXTERNAL_LIBDIR}/glew/1.9.0/lib/x64 
-        ${OpenCV_LIB_DIRS}
-        ${PROJECT_EXTERNAL_LIBDIR}/opencv/2.49/x64/VS2015/lib
+        ${PROJECT_EXTERNAL_LIBDIR}/glew/1.9.0/lib/x64
     )
-
-    if (OPTION_BUILD_EXR)
-        link_directories(
-            ${PROJECT_EXTERNAL_LIBDIR}/openexr/ilmbase-2.2.0/VS2015/x64/lib
-            ${PROJECT_EXTERNAL_LIBDIR}/openexr/openexr-2.2.0/VS2015/x64/lib
-        )
-    endif()
 
     # this must be before add_executable
     if (OPTION_CMP_DIRECTX)
@@ -24,8 +29,8 @@ if(CMP_HOST_WINDOWS)
     endif()
 endif()
 
-add_executable(CompressonatorCLI-bin "")
-
+target_link_libraries(CompressonatorCLI-bin ZLIB::ZLIB ${OpenCV_LIBS})
+target_include_directories(CompressonatorCLI-bin PUBLIC ${OpenCV_INCLUDE_DIRS})
 
 # allow const char* -> char*
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -100,9 +105,10 @@ target_include_directories(CompressonatorCLI-bin
     ${PROJECT_SOURCE_DIR}/cmp_core/shaders
     ${PROJECT_SOURCE_DIR}/cmp_core/source
     ${PROJECT_SOURCE_DIR}/external/stb/
-    ${PROJECT_SOURCE_DIR}/../common/lib/ext/glm
     ${OpenEXR_INCLUDE_DIRS}
 )
+
+target_include_directories(CompressonatorCLI-bin PRIVATE ${glm_INCLUDE_DIRS})
 
 if (OPTION_CMP_QT)
     target_include_directories(CompressonatorCLI-bin
@@ -111,14 +117,14 @@ if (OPTION_CMP_QT)
     )
 endif()
 
-if (OPTION_BUILD_EXR)
-    if (UNIX)
-        target_include_directories(CompressonatorCLI-bin
-            PRIVATE
-            /usr/local/include/OpenEXR/
-        )
-    endif()
-endif()
+#if (OPTION_BUILD_EXR)
+#    if (UNIX)
+#        target_include_directories(CompressonatorCLI-bin
+#            PRIVATE
+#            /usr/local/include/OpenEXR/
+#        )
+#    endif()
+#endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
