@@ -7,9 +7,14 @@ on:
       - linux-build-fixes # Temporary branch for Linux build fixes
 
 jobs:
-  build_compressonator:
-    name: "Build Compressonator CLI and Libraries"
-    runs-on: ubuntu-latest
+  build_compressonator_linux:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    name: "Build Compressonator CLI and Libraries (${{ matrix.os }})"
+    # TODO: Figure out how to use the container for Linux builds only
+
     container: ghcr.io/iamsomeone2/compressonator-builder:fedora42
 
     steps:
@@ -37,7 +42,7 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with: 
-            name: Compressonator_${{ runner.os }}-${{ runner.arch }}_${{ github.ref_name }}_Build
+            name: Compressonator_${{ matrix.os }}-${{ runner.arch }}_${{ github.ref_name }}_Build
             path: |
               ${{github.workspace}}/cmake-build-release/bin/
               ${{github.workspace}}/cmake-build-release/lib/
