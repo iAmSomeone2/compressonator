@@ -8,13 +8,8 @@ on:
 
 jobs:
   build_compressonator_linux:
-    strategy:
-      matrix:
-        os: [ ubuntu-latest, windows-latest ]
-    runs-on: ${{ matrix.os }}
-    name: "Build Compressonator CLI and Libraries (${{ matrix.os }})"
-    # TODO: Figure out how to use the container for Linux builds only
-
+    runs-on: ubuntu-latest
+    name: "Build Compressonator CLI and Libraries (Linux)"
     container: ghcr.io/iamsomeone2/compressonator-builder:fedora42
 
     steps:
@@ -47,6 +42,40 @@ jobs:
               ${{github.workspace}}/cmake-build-release/bin/
               ${{github.workspace}}/cmake-build-release/lib/
               !${{github.workspace}}/cmake-build-release/lib/libgtest.a
+              
+
+  build_compressonator_windows:
+    runs-on: windows-latest
+    name: "Build Compressonator CLI and Libraries (Windows)"
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+          fetch-depth: 1
+
+      - name: Create Build directory
+        run: mkdir cmake-build-release
+
+      - name: Configure CMake
+        # Use a bash shell so we can use the same syntax for environment variable
+        # access regardless of the host operating system
+        shell: bash
+        working-directory: ${{github.workspace}}/cmake-build-release
+        run: cmake -S $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DOPTION_ENABLE_ALL_APPS=OFF -DOPTION_BUILD_APPS_CMP_CLI=ON -B .
+
+      - name: Build
+        working-directory: ${{github.workspace}}/cmake-build-release
+        run: ninja
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Compressonator_${{ matrix.os }}-${{ runner.arch }}_${{ github.ref_name }}_Build
+          path: |
+            ${{github.workspace}}/cmake-build-release/bin/
+            ${{github.workspace}}/cmake-build-release/lib/
+            !${{github.workspace}}/cmake-build-release/lib/libgtest.a
   
 #   build_compressonator_framework:
 #     runs-on: windows-latest
