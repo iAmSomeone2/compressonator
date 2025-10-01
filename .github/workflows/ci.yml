@@ -11,7 +11,7 @@ env:
 
   VCPKG_CACHE_DIR: "${{ github.workspace }}/vcpkg-cache"
   VCPKG_BUILD_TYPE: release
-  VCPKG_BINARY_SOURCES: "clear;files,${{ env.BIN_CACHE_DIR }},readwrite"
+  VCPKG_BINARY_SOURCES: "clear;files,${{ env.VCPKG_CACHE_DIR }},readwrite"
 
 jobs:
   build_compressonator_linux:
