@@ -27,7 +27,7 @@ jobs:
         # Use a bash shell so we can use the same syntax for environment variable
         # access regardless of the host operating system
         shell: bash
-        run: cmake --preset=ci_build
+        run: cmake --preset=linux_ci_build
 
       - name: Build
         run: cmake --build cmake-build
@@ -63,7 +63,7 @@ jobs:
         run: mkdir cmake-build
 
       - name: Configure CMake
-        run: cmake --preset=vcpkg
+        run: cmake --preset=windows_ci_build
 
       - name: Build
         run: cmake --build cmake-build

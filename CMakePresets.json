@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 5,
   "cmakeMinimumRequired": {
     "major": 3,
     "minor": 24,
@@ -7,7 +7,7 @@
   },
   "configurePresets": [
     {
-      "name": "ci_build",
+      "name": "linux_ci_build",
       "description": "Configure the project to build the CLI and SDK in Release mode",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/cmake-build",
@@ -16,14 +16,25 @@
         "OPTION_ENABLE_ALL_APPS": "OFF",
         "OPTION_BUILD_APPS_CMP_CLI": "ON",
         "OPTION_BUILD_CMP_SDK": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
       }
     },
     {
-      "name": "vcpkg",
-      "inherits": "ci_build",
+      "name": "windows_ci_build",
+      "inherits": "linux_ci_build",
+      "generator": "Visual Studio 17 2022",
       "description": "Configure the project like 'ci_build' but using vcpkg to find dependencies'",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
       }
     }
   ]
