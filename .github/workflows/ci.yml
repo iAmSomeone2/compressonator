@@ -62,6 +62,9 @@ jobs:
       - name: Create build directory
         run: mkdir cmake-build
 
+      - name: (DEBUG) Print VCPKG_INSTALLATION_ROOT
+        run: echo $env:VCPKG_INSTALLATION_ROOT
+
       - name: Configure CMake
         run: cmake --preset=windows_ci_build
 
