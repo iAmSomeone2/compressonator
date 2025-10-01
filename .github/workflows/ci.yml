@@ -32,14 +32,18 @@ jobs:
       - name: Build
         run: cmake --build cmake-build
 
+      - name: Bundle artifacts
+        run: |
+          mkdir -p cmake-build/out && \
+          rm cmake-build/lib/libgtest.a && \
+          mv cmake-build/bin cmake-build/out/ && \
+          mv cmake-build/lib cmake-build/out/
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with: 
-            name: Compressonator_${{ matrix.os }}-${{ runner.arch }}_${{ github.ref_name }}_Build
-            path: |
-              ${{github.workspace}}/cmake-build/bin/
-              ${{github.workspace}}/cmake-build/lib/
-              !${{github.workspace}}/cmake-build/lib/libgtest.a
+            name: Compressonator_Linux-${{ runner.arch }}_${{ github.ref_name }}_Build
+            path: cmake-build/out
               
 
   build_compressonator_windows:
@@ -51,8 +55,11 @@ jobs:
         with:
           submodules: true
           fetch-depth: 1
+          
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
 
-      - name: Create Build directory
+      - name: Create build directory
         run: mkdir cmake-build
 
       - name: Configure CMake
@@ -61,16 +68,20 @@ jobs:
       - name: Build
         run: cmake --build cmake-build
 
+      - name: Bundle artifacts
+        run: |
+          mkdir -p cmake-build/out && \
+          rm cmake-build/lib/libgtest.a && \
+          mv cmake-build/bin cmake-build/out/ && \
+          mv cmake-build/lib cmake-build/out/
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Compressonator_${{ matrix.os }}-${{ runner.arch }}_${{ github.ref_name }}_Build
-          path: |
-            ${{github.workspace}}/cmake-build/bin/
-            ${{github.workspace}}/cmake-build/lib/
-            !${{github.workspace}}/cmake-build/lib/libgtest.a
-  
-#   build_compressonator_framework:
+          name: Compressonator_Windows-${{ runner.arch }}_${{ github.ref_name }}_Build
+          path: cmake-build/out
+
+      #   build_compressonator_framework:
 #     runs-on: windows-latest
 
 #     steps:
