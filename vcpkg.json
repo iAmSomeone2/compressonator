@@ -1,0 +1,15 @@
+{
+  "name": "compressonator",
+  "version": "4.5.1",
+  "dependencies": [
+    "glad",
+    "glew",
+    "glfw3",
+    "glm",
+    "opencv4",
+    "openexr",
+    "qt5-base",
+    "qt5-declarative",
+    "qt5-webengine"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "ci_build",
+      "description": "Configure the project to build the CLI and SDK in Release mode",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/cmake-build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "OPTION_ENABLE_ALL_APPS": "OFF",
+        "OPTION_BUILD_APPS_CMP_CLI": "ON",
+        "OPTION_BUILD_CMP_SDK": "ON"
+      }
+    },
+    {
+      "name": "vcpkg",
+      "inherits": "ci_build",
+      "description": "Configure the project like 'ci_build' but using vcpkg to find dependencies'",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      }
+    }
+  ]
+}

@@ -124,9 +124,10 @@ endif()
 #                     OPENCV
 # ====================================================
 if (OPTION_CMP_OPENCV)
-    list(APPEND CMAKE_FIND_ROOT_PATH ${CMAKE_CURRENT_LIST_DIR}/opencv/)
+#    list(APPEND CMAKE_FIND_ROOT_PATH ${CMAKE_CURRENT_LIST_DIR}/opencv/)
     message(STATUS "++++++++++++++++++  OPENCV" )
-    include(${CMAKE_CURRENT_LIST_DIR}/opencv/CMakeLists.txt)
+#    include(${CMAKE_CURRENT_LIST_DIR}/opencv/CMakeLists.txt)
+    find_package(OpenCV CONFIG REQUIRED)
 endif()
 
 # ====================================================

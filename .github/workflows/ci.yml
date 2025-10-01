@@ -21,27 +21,25 @@ jobs:
       # TODO: Add ccache support
       
       - name: Create Build directory
-        run: mkdir cmake-build-release
+        run: mkdir cmake-build
 
       - name: Configure CMake
         # Use a bash shell so we can use the same syntax for environment variable
         # access regardless of the host operating system
         shell: bash
-        working-directory: ${{github.workspace}}/cmake-build-release
-        run: cmake -S $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DOPTION_ENABLE_ALL_APPS=OFF -DOPTION_BUILD_APPS_CMP_CLI=ON -B .
+        run: cmake --preset=ci_build
 
       - name: Build
-        working-directory: ${{github.workspace}}/cmake-build-release
-        run: ninja
+        run: cmake --build cmake-build
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with: 
             name: Compressonator_${{ matrix.os }}-${{ runner.arch }}_${{ github.ref_name }}_Build
             path: |
-              ${{github.workspace}}/cmake-build-release/bin/
-              ${{github.workspace}}/cmake-build-release/lib/
-              !${{github.workspace}}/cmake-build-release/lib/libgtest.a
+              ${{github.workspace}}/cmake-build/bin/
+              ${{github.workspace}}/cmake-build/lib/
+              !${{github.workspace}}/cmake-build/lib/libgtest.a
               
 
   build_compressonator_windows:
@@ -55,27 +53,22 @@ jobs:
           fetch-depth: 1
 
       - name: Create Build directory
-        run: mkdir cmake-build-release
+        run: mkdir cmake-build
 
       - name: Configure CMake
-        # Use a bash shell so we can use the same syntax for environment variable
-        # access regardless of the host operating system
-        shell: bash
-        working-directory: ${{github.workspace}}/cmake-build-release
-        run: cmake -S $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DOPTION_ENABLE_ALL_APPS=OFF -DOPTION_BUILD_APPS_CMP_CLI=ON -B .
+        run: cmake --preset=vcpkg
 
       - name: Build
-        working-directory: ${{github.workspace}}/cmake-build-release
-        run: ninja
+        run: cmake --build cmake-build
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Compressonator_${{ matrix.os }}-${{ runner.arch }}_${{ github.ref_name }}_Build
           path: |
-            ${{github.workspace}}/cmake-build-release/bin/
-            ${{github.workspace}}/cmake-build-release/lib/
-            !${{github.workspace}}/cmake-build-release/lib/libgtest.a
+            ${{github.workspace}}/cmake-build/bin/
+            ${{github.workspace}}/cmake-build/lib/
+            !${{github.workspace}}/cmake-build/lib/libgtest.a
   
 #   build_compressonator_framework:
 #     runs-on: windows-latest
