@@ -6,10 +6,17 @@ on:
       - master
       - linux-build-fixes # Temporary branch for Linux build fixes
 
+env:
+  PROJECT_VERSION_PATCH: 1
+
+  VCPKG_CACHE_DIR: "${{ github.workspace }}/vcpkg-cache"
+  VCPKG_BUILD_TYPE: release
+  VCPKG_BINARY_SOURCES: "clear;files,${{ env.BIN_CACHE_DIR }},readwrite"
+
 jobs:
   build_compressonator_linux:
     runs-on: ubuntu-latest
-    name: "Build Compressonator CLI and Libraries (Linux)"
+    name: "Build CLI and Libraries (Linux)"
     container: ghcr.io/iamsomeone2/compressonator-builder:fedora42
 
     steps:
@@ -17,8 +24,6 @@ jobs:
         with:
           submodules: true
           fetch-depth: 1
-
-      # TODO: Add ccache support
       
       - name: Create Build directory
         run: mkdir cmake-build
@@ -27,7 +32,7 @@ jobs:
         # Use a bash shell so we can use the same syntax for environment variable
         # access regardless of the host operating system
         shell: bash
-        run: cmake --preset=linux_ci_build
+        run: cmake --preset=linux_ci_build -DPROJECT_VERSION_PATCH=$PROJECT_VERSION_PATCH
 
       - name: Build
         run: cmake --build cmake-build
@@ -48,13 +53,24 @@ jobs:
 
   build_compressonator_windows:
     runs-on: windows-latest
-    name: "Build Compressonator CLI and Libraries (Windows)"
+    name: "Build CLI and Libraries (Windows)"
 
     steps:
       - uses: actions/checkout@v5
         with:
           submodules: true
           fetch-depth: 1
+
+      - name: Create vcpkg cache directory
+        run: mkdir ${{ env.VCPKG_CACHE_DIR }}
+
+      - uses: actions/cache@v4
+        name: Cache vcpkg
+        with:
+          path: ${{ env.VCPKG_CACHE_DIR }}
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
           
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
@@ -62,11 +78,8 @@ jobs:
       - name: Create build directory
         run: mkdir cmake-build
 
-      - name: (DEBUG) Print VCPKG_INSTALLATION_ROOT
-        run: echo $env:VCPKG_INSTALLATION_ROOT
-
       - name: Configure CMake
-        run: cmake --preset=windows_ci_build -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT\\scripts\\buildsystems\\vcpkg.cmake"
+        run: cmake --preset=windows_ci_build -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT\\scripts\\buildsystems\\vcpkg.cmake" -DPROJECT_VERSION_PATCH=$PROJECT_VERSION_PATCH
 
       - name: Build
         run: cmake --build cmake-build
