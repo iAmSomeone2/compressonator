@@ -28,9 +28,6 @@
       "inherits": "linux_ci_build",
       "generator": "Visual Studio 17 2022",
       "description": "Configure the project like 'ci_build' but using vcpkg to find dependencies'",
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "$ENV{VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake"
-      },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
